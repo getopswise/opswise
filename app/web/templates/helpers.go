@@ -17,6 +17,19 @@ func nullStr(ns sql.NullString) string {
 	return ""
 }
 
+func maskPassword(ns sql.NullString) string {
+	if ns.Valid && ns.String != "" {
+		return "••••••••"
+	}
+	return "(not set)"
+}
+
+// SSHTestResult holds the result of an SSH connection test.
+type SSHTestResult struct {
+	Success bool
+	Message string
+}
+
 func nullTime(nt sql.NullTime) string {
 	if nt.Valid {
 		return nt.Time.Format("2006-01-02 15:04")

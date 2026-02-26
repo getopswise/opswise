@@ -140,6 +140,7 @@ CREATE TABLE hosts (
     ssh_user    TEXT NOT NULL DEFAULT 'root',
     ssh_port    INTEGER NOT NULL DEFAULT 22,
     ssh_key     TEXT,                          -- path to private key
+    ssh_password TEXT,                         -- SSH password (optional)
     tags        TEXT,                          -- comma-separated
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -199,6 +200,7 @@ GET  /                          → dashboard (overview, recent deployments)
 GET  /hosts                     → list hosts
 POST /hosts                     → add host
 GET  /hosts/:id                 → host detail
+POST /hosts/:id/test            → test SSH connection (HTMX)
 DELETE /hosts/:id               → remove host
 
 GET  /products                  → list available products
@@ -276,13 +278,18 @@ Playbook path is resolved from `deploy/products/<name>/ansible/install.yml`.
 
 ### SSH Credential Flow
 
-SSH key resolution follows a fallback chain (highest priority first):
+SSH credential resolution follows a fallback chain (highest priority first):
 
 1. **Per-Host Key** – `hosts.ssh_key` set via the Add Host form
-2. **Global Key** – `ssh_key_path` setting from the Settings page
-3. **Ansible Default** – if neither is set, Ansible uses its own default key discovery
+2. **Per-Host Password** – `hosts.ssh_password` set via the Add Host form; passed as `ansible_password` with `StrictHostKeyChecking=no`
+3. **Global Key** – `ssh_key_path` setting from the Settings page
+4. **Ansible Default** – if neither is set, Ansible uses its own default key discovery
 
 The resolved key is passed as `ansible_ssh_private_key_file` in the inventory entry for each host.
+
+### Connection Test
+
+The host detail page includes a "Test Connection" button (`POST /hosts/:id/test`) that uses `golang.org/x/crypto/ssh` to verify SSH connectivity. The test tries each auth method in the fallback chain (per-host key → password → global key → default keys like `~/.ssh/id_rsa`) and returns an inline success/error result via HTMX.
 
 ---
 

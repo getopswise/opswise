@@ -26,6 +26,10 @@ templ HostDetailPage(host dbq.Host, deployments []dbq.Deployment) {
 				<span>{ nullStr(host.SshKey) }</span>
 			</div>
 			<div class="detail-item">
+				<span class="detail-label">SSH Password</span>
+				<span>{ maskPassword(host.SshPassword) }</span>
+			</div>
+			<div class="detail-item">
 				<span class="detail-label">Tags</span>
 				<span>{ nullStr(host.Tags) }</span>
 			</div>
@@ -33,6 +37,17 @@ templ HostDetailPage(host dbq.Host, deployments []dbq.Deployment) {
 				<span class="detail-label">Created</span>
 				<span>{ nullTime(host.CreatedAt) }</span>
 			</div>
+		</div>
+		<div class="mb-3">
+			<button
+				class="btn-primary"
+				hx-post={ "/hosts/" + itoa(host.ID) + "/test" }
+				hx-target="#test-result"
+				hx-swap="innerHTML"
+				hx-indicator="#test-spinner"
+			>Test Connection</button>
+			<span id="test-spinner" class="htmx-indicator">Testing...</span>
+			<div id="test-result" class="mt-1"></div>
 		</div>
 		<h2>Deployments on this Host</h2>
 		if len(deployments) == 0 {
@@ -63,5 +78,13 @@ templ HostDetailPage(host dbq.Host, deployments []dbq.Deployment) {
 				</tbody>
 			</table>
 		}
+	}
+}
+
+templ TestConnectionResult(result SSHTestResult) {
+	if result.Success {
+		<div class="badge badge-success">Connected successfully ({ result.Message })</div>
+	} else {
+		<div class="badge badge-failed">Connection failed: { result.Message }</div>
 	}
 }

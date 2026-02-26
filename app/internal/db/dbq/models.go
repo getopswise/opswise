@@ -24,14 +24,15 @@ type Deployment struct {
 }
 
 type Host struct {
-	ID        int64
-	Name      string
-	Ip        string
-	SshUser   string
-	SshPort   int64
-	SshKey    sql.NullString
-	Tags      sql.NullString
-	CreatedAt sql.NullTime
+	ID          int64
+	Name        string
+	Ip          string
+	SshUser     string
+	SshPort     int64
+	SshKey      sql.NullString
+	Tags        sql.NullString
+	CreatedAt   sql.NullTime
+	SshPassword sql.NullString
 }
 
 type Product struct {

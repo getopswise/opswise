@@ -247,6 +247,8 @@ func (s *DeployService) runAnsible(params DeployParams, appendLog func(string)) 
 		switch {
 		case h.SshKey.Valid && h.SshKey.String != "":
 			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", h.SshKey.String)
+		case h.SshPassword.Valid && h.SshPassword.String != "":
+			entry += fmt.Sprintf(" ansible_password=%s ansible_ssh_extra_args='-o StrictHostKeyChecking=no'", h.SshPassword.String)
 		case globalSSHKey != "":
 			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", globalSSHKey)
 		}

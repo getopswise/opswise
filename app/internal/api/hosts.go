@@ -39,15 +39,17 @@ func (h *HostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sshKey := r.FormValue("ssh_key")
+	sshPassword := r.FormValue("ssh_password")
 	tags := r.FormValue("tags")
 
 	_, err := h.q.CreateHost(r.Context(), dbq.CreateHostParams{
-		Name:    r.FormValue("name"),
-		Ip:      r.FormValue("ip"),
-		SshUser: r.FormValue("ssh_user"),
-		SshPort: port,
-		SshKey:  sql.NullString{String: sshKey, Valid: sshKey != ""},
-		Tags:    sql.NullString{String: tags, Valid: tags != ""},
+		Name:        r.FormValue("name"),
+		Ip:          r.FormValue("ip"),
+		SshUser:     r.FormValue("ssh_user"),
+		SshPort:     port,
+		SshKey:      sql.NullString{String: sshKey, Valid: sshKey != ""},
+		SshPassword: sql.NullString{String: sshPassword, Valid: sshPassword != ""},
+		Tags:        sql.NullString{String: tags, Valid: tags != ""},
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -78,6 +80,26 @@ func (h *HostHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templates.HostDetailPage(host, deployments).Render(r.Context(), w)
+}
+
+func (h *HostHandler) TestConnection(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	host, err := h.q.GetHost(r.Context(), id)
+	if err != nil {
+		http.Error(w, "host not found", http.StatusNotFound)
+		return
+	}
+
+	// Load global SSH key as fallback
+	globalSSHKey, _ := h.q.GetSetting(r.Context(), "ssh_key_path")
+
+	result := TestSSHConnection(host, globalSSHKey)
+	templates.TestConnectionResult(result).Render(r.Context(), w)
 }
 
 func (h *HostHandler) Delete(w http.ResponseWriter, r *http.Request) {

@@ -90,6 +90,7 @@ func main() {
 	r.Get("/hosts", hostHandler.List)
 	r.Get("/hosts/{id}", hostHandler.Detail)
 	r.Post("/hosts", hostHandler.Create)
+	r.Post("/hosts/{id}/test", hostHandler.TestConnection)
 	r.Delete("/hosts/{id}", hostHandler.Delete)
 
 	// Products
