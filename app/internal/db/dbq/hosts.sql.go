@@ -117,3 +117,32 @@ func (q *Queries) ListHosts(ctx context.Context) ([]Host, error) {
 	}
 	return items, nil
 }
+
+const updateHost = `-- name: UpdateHost :exec
+UPDATE hosts SET name = ?, ip = ?, ssh_user = ?, ssh_port = ?, ssh_key = ?, ssh_password = ?, tags = ? WHERE id = ?
+`
+
+type UpdateHostParams struct {
+	Name        string
+	Ip          string
+	SshUser     string
+	SshPort     int64
+	SshKey      sql.NullString
+	SshPassword sql.NullString
+	Tags        sql.NullString
+	ID          int64
+}
+
+func (q *Queries) UpdateHost(ctx context.Context, arg UpdateHostParams) error {
+	_, err := q.db.ExecContext(ctx, updateHost,
+		arg.Name,
+		arg.Ip,
+		arg.SshUser,
+		arg.SshPort,
+		arg.SshKey,
+		arg.SshPassword,
+		arg.Tags,
+		arg.ID,
+	)
+	return err
+}

@@ -102,6 +102,53 @@ func (h *HostHandler) TestConnection(w http.ResponseWriter, r *http.Request) {
 	templates.TestConnectionResult(result).Render(r.Context(), w)
 }
 
+func (h *HostHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	port, _ := strconv.ParseInt(r.FormValue("ssh_port"), 10, 64)
+	if port == 0 {
+		port = 22
+	}
+
+	sshKey := r.FormValue("ssh_key")
+	sshPassword := r.FormValue("ssh_password")
+	tags := r.FormValue("tags")
+
+	// If password field is empty, preserve the existing password
+	if sshPassword == "" {
+		existing, err := h.q.GetHost(r.Context(), id)
+		if err == nil {
+			sshPassword = existing.SshPassword.String
+		}
+	}
+
+	err = h.q.UpdateHost(r.Context(), dbq.UpdateHostParams{
+		Name:        r.FormValue("name"),
+		Ip:          r.FormValue("ip"),
+		SshUser:     r.FormValue("ssh_user"),
+		SshPort:     port,
+		SshKey:      sql.NullString{String: sshKey, Valid: sshKey != ""},
+		SshPassword: sql.NullString{String: sshPassword, Valid: sshPassword != ""},
+		Tags:        sql.NullString{String: tags, Valid: tags != ""},
+		ID:          id,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/hosts/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
 func (h *HostHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {

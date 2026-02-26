@@ -24,6 +24,13 @@ func maskPassword(ns sql.NullString) string {
 	return "(not set)"
 }
 
+func passwordPlaceholder(ns sql.NullString) string {
+	if ns.Valid && ns.String != "" {
+		return "••••••••"
+	}
+	return "(optional)"
+}
+
 // SSHTestResult holds the result of an SSH connection test.
 type SSHTestResult struct {
 	Success bool

@@ -9,5 +9,8 @@ INSERT INTO hosts (name, ip, ssh_user, ssh_port, ssh_key, ssh_password, tags)
 VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
+-- name: UpdateHost :exec
+UPDATE hosts SET name = ?, ip = ?, ssh_user = ?, ssh_port = ?, ssh_key = ?, ssh_password = ?, tags = ? WHERE id = ?;
+
 -- name: DeleteHost :exec
 DELETE FROM hosts WHERE id = ?;
