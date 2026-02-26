@@ -1,0 +1,103 @@
+---
+- name: Install Loki
+  hosts: all
+  become: true
+  vars:
+    loki_version: "2.9.6"
+    loki_port: 3100
+    loki_data_dir: /var/lib/loki
+    loki_config_dir: /etc/loki
+  tasks:
+    - name: Create loki user
+      user:
+        name: loki
+        system: true
+        shell: /usr/sbin/nologin
+        create_home: false
+
+    - name: Create directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: loki
+        group: loki
+      loop:
+        - "{{ loki_config_dir }}"
+        - "{{ loki_data_dir }}"
+
+    - name: Download Loki
+      get_url:
+        url: "https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-amd64.zip"
+        dest: /tmp/loki.zip
+
+    - name: Install unzip
+      apt:
+        name: unzip
+        state: present
+
+    - name: Extract Loki
+      shell: unzip -o /tmp/loki.zip -d /tmp/loki-bin
+      args:
+        creates: /tmp/loki-bin/loki-linux-amd64
+
+    - name: Install binary
+      copy:
+        src: /tmp/loki-bin/loki-linux-amd64
+        dest: /usr/local/bin/loki
+        remote_src: true
+        mode: "0755"
+
+    - name: Create default config
+      copy:
+        dest: "{{ loki_config_dir }}/loki.yml"
+        content: |
+          auth_enabled: false
+          server:
+            http_listen_port: {{ loki_port }}
+          common:
+            path_prefix: {{ loki_data_dir }}
+            storage:
+              filesystem:
+                chunks_directory: {{ loki_data_dir }}/chunks
+                rules_directory: {{ loki_data_dir }}/rules
+            replication_factor: 1
+            ring:
+              kvstore:
+                store: inmemory
+          schema_config:
+            configs:
+              - from: 2020-10-24
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index:
+                  prefix: index_
+                  period: 24h
+        owner: loki
+        group: loki
+
+    - name: Create systemd service
+      copy:
+        dest: /etc/systemd/system/loki.service
+        content: |
+          [Unit]
+          Description=Loki
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=loki
+          Group=loki
+          Type=simple
+          ExecStart=/usr/local/bin/loki -config.file={{ loki_config_dir }}/loki.yml
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start Loki
+      systemd:
+        name: loki
+        daemon_reload: true
+        enabled: true
+        state: started

@@ -1,0 +1,28 @@
+---
+- name: Uninstall Prometheus
+  hosts: all
+  become: true
+  tasks:
+    - name: Stop Prometheus
+      systemd:
+        name: prometheus
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove systemd service
+      file:
+        path: /etc/systemd/system/prometheus.service
+        state: absent
+
+    - name: Remove binaries
+      file:
+        path: "/usr/local/bin/{{ item }}"
+        state: absent
+      loop:
+        - prometheus
+        - promtool
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: true

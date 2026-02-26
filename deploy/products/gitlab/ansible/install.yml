@@ -1,0 +1,43 @@
+---
+- name: Install GitLab CE
+  hosts: all
+  become: true
+  vars:
+    gitlab_version: "16.11.0"
+    gitlab_port: 80
+    gitlab_external_url: "http://gitlab.example.com"
+    gitlab_root_password: "changeme"
+  tasks:
+    - name: Install dependencies
+      apt:
+        name:
+          - curl
+          - openssh-server
+          - ca-certificates
+          - tzdata
+          - perl
+        state: present
+        update_cache: true
+
+    - name: Add GitLab repository
+      shell: |
+        curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | bash
+      args:
+        creates: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
+
+    - name: Install GitLab CE
+      apt:
+        name: "gitlab-ce"
+        state: present
+      environment:
+        EXTERNAL_URL: "{{ gitlab_external_url }}"
+        GITLAB_ROOT_PASSWORD: "{{ gitlab_root_password }}"
+
+    - name: Configure GitLab external URL
+      lineinfile:
+        path: /etc/gitlab/gitlab.rb
+        regexp: "^external_url"
+        line: "external_url '{{ gitlab_external_url }}'"
+
+    - name: Reconfigure GitLab
+      command: gitlab-ctl reconfigure

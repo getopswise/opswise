@@ -1,0 +1,25 @@
+---
+- name: Uninstall Loki
+  hosts: all
+  become: true
+  tasks:
+    - name: Stop Loki
+      systemd:
+        name: loki
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove systemd service
+      file:
+        path: /etc/systemd/system/loki.service
+        state: absent
+
+    - name: Remove binary
+      file:
+        path: /usr/local/bin/loki
+        state: absent
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: true

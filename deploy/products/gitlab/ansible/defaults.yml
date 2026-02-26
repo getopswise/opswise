@@ -1,0 +1,4 @@
+gitlab_version: "16.11.0"
+gitlab_port: 80
+gitlab_external_url: "http://gitlab.example.com"
+gitlab_root_password: "changeme"

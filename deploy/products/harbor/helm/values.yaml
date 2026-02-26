@@ -1,0 +1,10 @@
+harborAdminPassword: changeme
+expose:
+  type: clusterIP
+  tls:
+    enabled: false
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    registry:
+      size: 50Gi

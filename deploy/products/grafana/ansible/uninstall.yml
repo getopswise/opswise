@@ -1,0 +1,22 @@
+---
+- name: Uninstall Grafana
+  hosts: all
+  become: true
+  tasks:
+    - name: Stop Grafana
+      systemd:
+        name: grafana-server
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove Grafana package
+      apt:
+        name: grafana
+        state: absent
+        purge: true
+
+    - name: Remove Grafana repository
+      file:
+        path: /etc/apt/sources.list.d/grafana.list
+        state: absent

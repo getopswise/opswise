@@ -1,0 +1,14 @@
+name: monitoring
+display_name: Monitoring Stack
+description: Prometheus + Grafana + Loki for full observability
+products:
+  - name: prometheus
+    config:
+      port: 9090
+  - name: grafana
+    config:
+      port: 3000
+      admin_password: "{{ .AdminPassword }}"
+  - name: loki
+    config:
+      port: 3100

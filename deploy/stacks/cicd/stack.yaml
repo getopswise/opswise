@@ -1,0 +1,10 @@
+name: cicd
+display_name: CI/CD Stack
+description: GitLab CE + Harbor for source control and container registry
+products:
+  - name: gitlab
+    config:
+      port: 80
+  - name: harbor
+    config:
+      port: 8080

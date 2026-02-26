@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -26,6 +27,9 @@ func main() {
 	defer database.Close()
 
 	queries := dbq.New(database)
+
+	// Seed products and stacks
+	db.Seed(context.Background(), queries)
 
 	hostHandler := api.NewHostHandler(queries)
 	productHandler := api.NewProductHandler(queries)

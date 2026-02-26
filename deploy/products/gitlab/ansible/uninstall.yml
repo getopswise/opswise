@@ -1,0 +1,14 @@
+---
+- name: Uninstall GitLab CE
+  hosts: all
+  become: true
+  tasks:
+    - name: Stop GitLab
+      command: gitlab-ctl stop
+      ignore_errors: true
+
+    - name: Remove GitLab package
+      apt:
+        name: gitlab-ce
+        state: absent
+        purge: true

@@ -1,0 +1,15 @@
+name: vibe-coding
+display_name: Vibe Coding Stack
+description: GitLab + Harbor + Keycloak + ArgoCD for a full development platform
+products:
+  - name: gitlab
+    config:
+      port: 80
+  - name: harbor
+    config:
+      port: 8080
+  - name: keycloak
+    config:
+      port: 8081
+  - name: argocd
+    config: {}
