@@ -103,6 +103,7 @@ func main() {
 	r.Post("/hosts", hostHandler.Create)
 	r.Post("/hosts/{id}", hostHandler.Update)
 	r.Post("/hosts/{id}/test", hostHandler.TestConnection)
+	r.Post("/hosts/{id}/install-key", hostHandler.InstallKey)
 	r.Delete("/hosts/{id}", hostHandler.Delete)
 
 	// Products

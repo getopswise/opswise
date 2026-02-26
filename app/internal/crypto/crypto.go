@@ -96,6 +96,16 @@ func Decrypt(ciphertext string, masterKey []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
+// AuthorizedKey parses an SSH private key PEM and returns the public key
+// in authorized_keys format (e.g. "ssh-rsa AAAA...").
+func AuthorizedKey(privateKeyPEM []byte) (string, error) {
+	signer, err := ssh.ParsePrivateKey(privateKeyPEM)
+	if err != nil {
+		return "", fmt.Errorf("parse private key: %w", err)
+	}
+	return string(ssh.MarshalAuthorizedKey(signer.PublicKey())), nil
+}
+
 // Fingerprint parses an SSH private key PEM and returns its SHA256 fingerprint.
 func Fingerprint(privateKeyPEM []byte) (string, error) {
 	signer, err := ssh.ParsePrivateKey(privateKeyPEM)

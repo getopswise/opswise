@@ -2,14 +2,18 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/getopswise/opswise/app/internal/crypto"
 	"github.com/getopswise/opswise/app/internal/db/dbq"
 	"github.com/getopswise/opswise/app/web/templates"
 	"github.com/go-chi/chi/v5"
+	"golang.org/x/crypto/ssh"
 )
 
 type HostHandler struct {
@@ -238,6 +242,99 @@ func (h *HostHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/hosts/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+func (h *HostHandler) InstallKey(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	host, err := h.q.GetHost(r.Context(), id)
+	if err != nil {
+		http.Error(w, "host not found", http.StatusNotFound)
+		return
+	}
+
+	if !host.SshKey.Valid || host.SshKey.String == "" {
+		templates.TestConnectionResult(templates.SSHTestResult{
+			Success: false, Message: "no SSH key stored for this host",
+		}).Render(r.Context(), w)
+		return
+	}
+	if !host.SshPassword.Valid || host.SshPassword.String == "" {
+		templates.TestConnectionResult(templates.SSHTestResult{
+			Success: false, Message: "no SSH password stored for this host",
+		}).Render(r.Context(), w)
+		return
+	}
+
+	// Decrypt private key and derive public key
+	decryptedKey, err := crypto.Decrypt(host.SshKey.String, h.masterKey)
+	if err != nil {
+		templates.TestConnectionResult(templates.SSHTestResult{
+			Success: false, Message: "failed to decrypt SSH key: " + err.Error(),
+		}).Render(r.Context(), w)
+		return
+	}
+
+	pubKeyLine, err := crypto.AuthorizedKey(decryptedKey)
+	if err != nil {
+		templates.TestConnectionResult(templates.SSHTestResult{
+			Success: false, Message: "failed to derive public key: " + err.Error(),
+		}).Render(r.Context(), w)
+		return
+	}
+
+	// Decrypt password and connect via password auth
+	decryptedPassword, err := crypto.Decrypt(host.SshPassword.String, h.masterKey)
+	if err != nil {
+		templates.TestConnectionResult(templates.SSHTestResult{
+			Success: false, Message: "failed to decrypt password: " + err.Error(),
+		}).Render(r.Context(), w)
+		return
+	}
+
+	addr := fmt.Sprintf("%s:%d", host.Ip, host.SshPort)
+	config := &ssh.ClientConfig{
+		User:            host.SshUser,
+		Auth:            []ssh.AuthMethod{ssh.Password(string(decryptedPassword))},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         10 * time.Second,
+	}
+
+	client, err := ssh.Dial("tcp", addr, config)
+	if err != nil {
+		templates.TestConnectionResult(templates.SSHTestResult{
+			Success: false, Message: "SSH connect failed: " + err.Error(),
+		}).Render(r.Context(), w)
+		return
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		templates.TestConnectionResult(templates.SSHTestResult{
+			Success: false, Message: "SSH session failed: " + err.Error(),
+		}).Render(r.Context(), w)
+		return
+	}
+	defer session.Close()
+
+	session.Stdin = strings.NewReader(pubKeyLine)
+	cmd := "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+	if err := session.Run(cmd); err != nil {
+		templates.TestConnectionResult(templates.SSHTestResult{
+			Success: false, Message: "remote command failed: " + err.Error(),
+		}).Render(r.Context(), w)
+		return
+	}
+
+	log.Printf("installed public key on host %d (%s)", host.ID, host.Ip)
+	templates.TestConnectionResult(templates.SSHTestResult{
+		Success: true, Message: "public key installed",
+	}).Render(r.Context(), w)
 }
 
 func (h *HostHandler) Delete(w http.ResponseWriter, r *http.Request) {

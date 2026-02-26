@@ -57,8 +57,20 @@ templ HostDetailPage(host dbq.Host, deployments []dbq.Deployment) {
 				hx-swap="innerHTML"
 				hx-indicator="#test-spinner"
 			>Test Connection</button>
-			<span id="test-spinner" class="htmx-indicator">Testing...</span>
+			if host.SshKey.Valid && host.SshKey.String != "" && host.SshPassword.Valid && host.SshPassword.String != "" {
+				<button
+					class="btn-primary"
+					style="margin-left: 0.5rem;"
+					hx-post={ "/hosts/" + itoa(host.ID) + "/install-key" }
+					hx-target="#install-key-result"
+					hx-swap="innerHTML"
+					hx-indicator="#install-key-spinner"
+				>Install Public Key</button>
+				<span id="install-key-spinner" class="htmx-indicator">Installing...</span>
+			}
 			<div id="test-result" class="mt-1"></div>
+			<div id="install-key-result" class="mt-1"></div>
+			<span id="test-spinner" class="htmx-indicator">Testing...</span>
 		</div>
 		<h2>Deployments on this Host</h2>
 		if len(deployments) == 0 {
