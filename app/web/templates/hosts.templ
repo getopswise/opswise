@@ -28,8 +28,8 @@ templ HostsPage(hosts []dbq.Host) {
 						<input type="number" id="ssh_port" name="ssh_port" placeholder="22" value="22"/>
 					</div>
 					<div class="form-group">
-						<label for="ssh_key">SSH Key Path</label>
-						<input type="text" id="ssh_key" name="ssh_key" placeholder="~/.ssh/id_rsa"/>
+						<label for="ssh_key">SSH Private Key</label>
+						<textarea id="ssh_key" name="ssh_key" rows="4" placeholder="Paste PEM private key content (optional)" style="font-family: monospace; font-size: 0.85rem;"></textarea>
 					</div>
 					<div class="form-group">
 						<label for="ssh_password">SSH Password</label>
@@ -57,7 +57,7 @@ templ HostsPage(hosts []dbq.Host) {
 						<th>IP</th>
 						<th>SSH User</th>
 						<th>Port</th>
-						<th>SSH Key</th>
+						<th>Key Fingerprint</th>
 						<th>Tags</th>
 						<th>Actions</th>
 					</tr>
@@ -69,7 +69,7 @@ templ HostsPage(hosts []dbq.Host) {
 							<td><span class="text-mono">{ h.Ip }</span></td>
 							<td>{ h.SshUser }</td>
 							<td>{ itoa(h.SshPort) }</td>
-							<td>{ nullStr(h.SshKey) }</td>
+							<td><span class="text-mono">{ nullStr(h.KeyFingerprint) }</span></td>
 							<td>{ nullStr(h.Tags) }</td>
 							<td>
 								<button

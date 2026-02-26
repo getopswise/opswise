@@ -21,7 +21,8 @@ type DeployResult struct {
 // AppConfig holds application-level configuration loaded from
 // environment variables or config.yaml.
 type AppConfig struct {
-	DBPath    string `yaml:"db_path"`
-	Port      string `yaml:"port"`
-	DeployDir string `yaml:"deploy_dir"`
+	DBPath        string `yaml:"db_path"`
+	Port          string `yaml:"port"`
+	DeployDir     string `yaml:"deploy_dir"`
+	MasterKeyPath string `yaml:"master_key_path"`
 }

@@ -13,26 +13,27 @@ import (
 )
 
 // TestSSHConnection tries to establish an SSH connection to the host.
-// Fallback chain: per-host key -> per-host password -> global key -> default keys (~/.ssh/id_rsa, etc.)
-func TestSSHConnection(host dbq.Host, globalSSHKey string) templates.SSHTestResult {
+// decryptedKey and decryptedPassword are already-decrypted credentials from the DB.
+// Fallback chain: per-host key data -> per-host password -> global key path -> default keys (~/.ssh/id_rsa, etc.)
+func TestSSHConnection(host dbq.Host, globalSSHKey string, decryptedKey []byte, decryptedPassword string) templates.SSHTestResult {
 	addr := fmt.Sprintf("%s:%d", host.Ip, host.SshPort)
 	timeout := 10 * time.Second
 
-	// Try per-host key
-	if host.SshKey.Valid && host.SshKey.String != "" {
-		if result, ok := tryKeyAuth(host.SshUser, addr, host.SshKey.String, timeout); ok {
+	// Try per-host key data (decrypted from DB)
+	if len(decryptedKey) > 0 {
+		if result, ok := tryKeyDataAuth(host.SshUser, addr, decryptedKey, timeout); ok {
 			return result
 		}
 	}
 
-	// Try per-host password
-	if host.SshPassword.Valid && host.SshPassword.String != "" {
-		if result, ok := tryPasswordAuth(host.SshUser, addr, host.SshPassword.String, timeout); ok {
+	// Try per-host password (decrypted from DB)
+	if decryptedPassword != "" {
+		if result, ok := tryPasswordAuth(host.SshUser, addr, decryptedPassword, timeout); ok {
 			return result
 		}
 	}
 
-	// Try global key
+	// Try global key (file path)
 	if globalSSHKey != "" {
 		if result, ok := tryKeyAuth(host.SshUser, addr, globalSSHKey, timeout); ok {
 			return result
@@ -57,6 +58,24 @@ func TestSSHConnection(host dbq.Host, globalSSHKey string) templates.SSHTestResu
 	}
 }
 
+// tryKeyDataAuth authenticates using in-memory SSH key data (no temp file needed).
+func tryKeyDataAuth(user, addr string, keyData []byte, timeout time.Duration) (templates.SSHTestResult, bool) {
+	signer, err := ssh.ParsePrivateKey(keyData)
+	if err != nil {
+		return templates.SSHTestResult{}, false
+	}
+
+	config := &ssh.ClientConfig{
+		User:            user,
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         timeout,
+	}
+
+	return dialSSH(addr, config, "key:encrypted")
+}
+
+// tryKeyAuth authenticates using an SSH key file path.
 func tryKeyAuth(user, addr, keyPath string, timeout time.Duration) (templates.SSHTestResult, bool) {
 	keyData, err := os.ReadFile(keyPath)
 	if err != nil {

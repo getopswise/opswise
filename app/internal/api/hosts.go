@@ -2,20 +2,23 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/getopswise/opswise/app/internal/crypto"
 	"github.com/getopswise/opswise/app/internal/db/dbq"
 	"github.com/getopswise/opswise/app/web/templates"
 	"github.com/go-chi/chi/v5"
 )
 
 type HostHandler struct {
-	q *dbq.Queries
+	q         *dbq.Queries
+	masterKey []byte
 }
 
-func NewHostHandler(q *dbq.Queries) *HostHandler {
-	return &HostHandler{q: q}
+func NewHostHandler(q *dbq.Queries, masterKey []byte) *HostHandler {
+	return &HostHandler{q: q, masterKey: masterKey}
 }
 
 func (h *HostHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -42,14 +45,44 @@ func (h *HostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	sshPassword := r.FormValue("ssh_password")
 	tags := r.FormValue("tags")
 
+	var encKey, fingerprint string
+	if sshKey != "" {
+		// Compute fingerprint from key content
+		fp, err := crypto.Fingerprint([]byte(sshKey))
+		if err != nil {
+			http.Error(w, "invalid SSH private key: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		fingerprint = fp
+
+		// Encrypt key content
+		enc, err := crypto.Encrypt([]byte(sshKey), h.masterKey)
+		if err != nil {
+			http.Error(w, "failed to encrypt SSH key", http.StatusInternalServerError)
+			return
+		}
+		encKey = enc
+	}
+
+	var encPassword string
+	if sshPassword != "" {
+		enc, err := crypto.Encrypt([]byte(sshPassword), h.masterKey)
+		if err != nil {
+			http.Error(w, "failed to encrypt password", http.StatusInternalServerError)
+			return
+		}
+		encPassword = enc
+	}
+
 	_, err := h.q.CreateHost(r.Context(), dbq.CreateHostParams{
-		Name:        r.FormValue("name"),
-		Ip:          r.FormValue("ip"),
-		SshUser:     r.FormValue("ssh_user"),
-		SshPort:     port,
-		SshKey:      sql.NullString{String: sshKey, Valid: sshKey != ""},
-		SshPassword: sql.NullString{String: sshPassword, Valid: sshPassword != ""},
-		Tags:        sql.NullString{String: tags, Valid: tags != ""},
+		Name:           r.FormValue("name"),
+		Ip:             r.FormValue("ip"),
+		SshUser:        r.FormValue("ssh_user"),
+		SshPort:        port,
+		SshKey:         sql.NullString{String: encKey, Valid: encKey != ""},
+		SshPassword:    sql.NullString{String: encPassword, Valid: encPassword != ""},
+		Tags:           sql.NullString{String: tags, Valid: tags != ""},
+		KeyFingerprint: sql.NullString{String: fingerprint, Valid: fingerprint != ""},
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -95,10 +128,32 @@ func (h *HostHandler) TestConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Decrypt SSH key if present
+	var decryptedKey []byte
+	if host.SshKey.Valid && host.SshKey.String != "" {
+		dk, err := crypto.Decrypt(host.SshKey.String, h.masterKey)
+		if err != nil {
+			log.Printf("failed to decrypt SSH key for host %d: %v", id, err)
+		} else {
+			decryptedKey = dk
+		}
+	}
+
+	// Decrypt password if present
+	var decryptedPassword string
+	if host.SshPassword.Valid && host.SshPassword.String != "" {
+		dp, err := crypto.Decrypt(host.SshPassword.String, h.masterKey)
+		if err != nil {
+			log.Printf("failed to decrypt SSH password for host %d: %v", id, err)
+		} else {
+			decryptedPassword = string(dp)
+		}
+	}
+
 	// Load global SSH key as fallback
 	globalSSHKey, _ := h.q.GetSetting(r.Context(), "ssh_key_path")
 
-	result := TestSSHConnection(host, globalSSHKey)
+	result := TestSSHConnection(host, globalSSHKey, decryptedKey, decryptedPassword)
 	templates.TestConnectionResult(result).Render(r.Context(), w)
 }
 
@@ -123,23 +178,59 @@ func (h *HostHandler) Update(w http.ResponseWriter, r *http.Request) {
 	sshPassword := r.FormValue("ssh_password")
 	tags := r.FormValue("tags")
 
-	// If password field is empty, preserve the existing password
-	if sshPassword == "" {
-		existing, err := h.q.GetHost(r.Context(), id)
-		if err == nil {
-			sshPassword = existing.SshPassword.String
+	// Get existing host for preserving values
+	existing, err := h.q.GetHost(r.Context(), id)
+	if err != nil {
+		http.Error(w, "host not found", http.StatusNotFound)
+		return
+	}
+
+	var encKey string
+	var fingerprint string
+	if sshKey != "" {
+		// New key provided — validate, fingerprint, encrypt
+		fp, err := crypto.Fingerprint([]byte(sshKey))
+		if err != nil {
+			http.Error(w, "invalid SSH private key: "+err.Error(), http.StatusBadRequest)
+			return
 		}
+		fingerprint = fp
+
+		enc, err := crypto.Encrypt([]byte(sshKey), h.masterKey)
+		if err != nil {
+			http.Error(w, "failed to encrypt SSH key", http.StatusInternalServerError)
+			return
+		}
+		encKey = enc
+	} else {
+		// Preserve existing encrypted key and fingerprint
+		encKey = existing.SshKey.String
+		fingerprint = existing.KeyFingerprint.String
+	}
+
+	var encPassword string
+	if sshPassword != "" {
+		enc, err := crypto.Encrypt([]byte(sshPassword), h.masterKey)
+		if err != nil {
+			http.Error(w, "failed to encrypt password", http.StatusInternalServerError)
+			return
+		}
+		encPassword = enc
+	} else {
+		// Preserve existing encrypted password
+		encPassword = existing.SshPassword.String
 	}
 
 	err = h.q.UpdateHost(r.Context(), dbq.UpdateHostParams{
-		Name:        r.FormValue("name"),
-		Ip:          r.FormValue("ip"),
-		SshUser:     r.FormValue("ssh_user"),
-		SshPort:     port,
-		SshKey:      sql.NullString{String: sshKey, Valid: sshKey != ""},
-		SshPassword: sql.NullString{String: sshPassword, Valid: sshPassword != ""},
-		Tags:        sql.NullString{String: tags, Valid: tags != ""},
-		ID:          id,
+		Name:           r.FormValue("name"),
+		Ip:             r.FormValue("ip"),
+		SshUser:        r.FormValue("ssh_user"),
+		SshPort:        port,
+		SshKey:         sql.NullString{String: encKey, Valid: encKey != ""},
+		SshPassword:    sql.NullString{String: encPassword, Valid: encPassword != ""},
+		Tags:           sql.NullString{String: tags, Valid: tags != ""},
+		KeyFingerprint: sql.NullString{String: fingerprint, Valid: fingerprint != ""},
+		ID:             id,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"sync"
 
+	"github.com/getopswise/opswise/app/internal/crypto"
 	"github.com/getopswise/opswise/app/internal/db/dbq"
 	gitpush "github.com/getopswise/opswise/app/internal/git"
 )
@@ -19,16 +21,18 @@ import (
 type DeployService struct {
 	q         *dbq.Queries
 	deployDir string
+	masterKey []byte
 
-	mu         sync.RWMutex
+	mu          sync.RWMutex
 	subscribers map[int64][]chan string
 }
 
 // NewDeployService creates a new deploy service.
-func NewDeployService(q *dbq.Queries, deployDir string) *DeployService {
+func NewDeployService(q *dbq.Queries, deployDir string, masterKey []byte) *DeployService {
 	return &DeployService{
 		q:           q,
 		deployDir:   deployDir,
+		masterKey:   masterKey,
 		subscribers: make(map[int64][]chan string),
 	}
 }
@@ -241,23 +245,92 @@ func (s *DeployService) runAnsible(params DeployParams, appendLog func(string)) 
 	// Load global SSH key as fallback
 	globalSSHKey, _ := s.q.GetSetting(context.Background(), "ssh_key_path")
 
+	// Track temp files for cleanup
+	var tmpFiles []string
+	cleanup := func() {
+		for _, f := range tmpFiles {
+			os.Remove(f)
+		}
+	}
+
 	var inventory []string
 	for _, h := range params.Hosts {
 		entry := fmt.Sprintf("%s ansible_user=%s ansible_port=%d", h.Ip, h.SshUser, h.SshPort)
 		switch {
 		case h.SshKey.Valid && h.SshKey.String != "":
-			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", h.SshKey.String)
+			// Decrypt key content and write to temp file
+			keyData, err := crypto.Decrypt(h.SshKey.String, s.masterKey)
+			if err != nil {
+				log.Printf("failed to decrypt SSH key for host %s: %v", h.Name, err)
+				break
+			}
+			tmpFile, err := os.CreateTemp("", "opswise-ssh-*")
+			if err != nil {
+				log.Printf("failed to create temp key file for host %s: %v", h.Name, err)
+				break
+			}
+			if _, err := tmpFile.Write(keyData); err != nil {
+				tmpFile.Close()
+				os.Remove(tmpFile.Name())
+				log.Printf("failed to write temp key file for host %s: %v", h.Name, err)
+				break
+			}
+			tmpFile.Close()
+			os.Chmod(tmpFile.Name(), 0600)
+			tmpFiles = append(tmpFiles, tmpFile.Name())
+			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", tmpFile.Name())
+			appendLog(fmt.Sprintf("Host %s: using encrypted SSH key", h.Name))
 		case h.SshPassword.Valid && h.SshPassword.String != "":
-			entry += fmt.Sprintf(" ansible_password=%s ansible_ssh_extra_args='-o StrictHostKeyChecking=no'", h.SshPassword.String)
+			// Decrypt password
+			passData, err := crypto.Decrypt(h.SshPassword.String, s.masterKey)
+			if err != nil {
+				log.Printf("failed to decrypt SSH password for host %s: %v", h.Name, err)
+				break
+			}
+			entry += fmt.Sprintf(" ansible_password=%s ansible_ssh_extra_args='-o StrictHostKeyChecking=no'", string(passData))
+			appendLog(fmt.Sprintf("Host %s: using encrypted password", h.Name))
 		case globalSSHKey != "":
 			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", globalSSHKey)
 		}
 		inventory = append(inventory, entry)
 	}
-	appendLog(fmt.Sprintf("Inventory: %s", strings.Join(inventory, ", ")))
+	appendLog(fmt.Sprintf("Inventory: %s", sanitizeInventoryLog(inventory)))
 	appendLog("")
 
-	return RunPlaybook(playbook, inventory, params.Config)
+	reader, done, err := RunPlaybook(playbook, inventory, params.Config)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+
+	// Wrap the done channel to clean up temp files after completion
+	wrappedDone := make(chan Result, 1)
+	go func() {
+		result := <-done
+		cleanup()
+		wrappedDone <- result
+	}()
+
+	return reader, wrappedDone, nil
+}
+
+// sanitizeInventoryLog replaces password values with [encrypted] in inventory log lines.
+func sanitizeInventoryLog(inventory []string) string {
+	var sanitized []string
+	for _, entry := range inventory {
+		// Mask ansible_password values
+		parts := strings.Split(entry, " ")
+		var clean []string
+		for _, p := range parts {
+			if strings.HasPrefix(p, "ansible_password=") {
+				clean = append(clean, "ansible_password=[encrypted]")
+			} else {
+				clean = append(clean, p)
+			}
+		}
+		sanitized = append(sanitized, strings.Join(clean, " "))
+	}
+	return strings.Join(sanitized, ", ")
 }
 
 func (s *DeployService) runComposeMode(params DeployParams, appendLog func(string)) (io.Reader, <-chan Result, error) {

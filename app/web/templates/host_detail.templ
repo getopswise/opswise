@@ -28,8 +28,11 @@ templ HostDetailPage(host dbq.Host, deployments []dbq.Deployment) {
 						<input type="number" id="ssh_port" name="ssh_port" value={ itoa(host.SshPort) }/>
 					</div>
 					<div class="form-group">
-						<label for="ssh_key">SSH Key Path</label>
-						<input type="text" id="ssh_key" name="ssh_key" value={ nullStr(host.SshKey) }/>
+						<label for="ssh_key">SSH Private Key</label>
+						<textarea id="ssh_key" name="ssh_key" rows="4" placeholder={ keyPlaceholder(host.KeyFingerprint) } style="font-family: monospace; font-size: 0.85rem;"></textarea>
+						if host.KeyFingerprint.Valid && host.KeyFingerprint.String != "" {
+							<small class="text-mono">Fingerprint: { host.KeyFingerprint.String }</small>
+						}
 					</div>
 					<div class="form-group">
 						<label for="ssh_password">SSH Password</label>

@@ -31,6 +31,13 @@ func passwordPlaceholder(ns sql.NullString) string {
 	return "(optional)"
 }
 
+func keyPlaceholder(ns sql.NullString) string {
+	if ns.Valid && ns.String != "" {
+		return "Key stored (paste new key to replace)"
+	}
+	return "Paste PEM private key content (optional)"
+}
+
 // SSHTestResult holds the result of an SSH connection test.
 type SSHTestResult struct {
 	Success bool

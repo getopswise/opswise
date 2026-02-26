@@ -11,19 +11,20 @@ import (
 )
 
 const createHost = `-- name: CreateHost :one
-INSERT INTO hosts (name, ip, ssh_user, ssh_port, ssh_key, ssh_password, tags)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, name, ip, ssh_user, ssh_port, ssh_key, tags, created_at, ssh_password
+INSERT INTO hosts (name, ip, ssh_user, ssh_port, ssh_key, ssh_password, tags, key_fingerprint)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, name, ip, ssh_user, ssh_port, ssh_key, tags, created_at, ssh_password, key_fingerprint, key_rotated_at
 `
 
 type CreateHostParams struct {
-	Name        string
-	Ip          string
-	SshUser     string
-	SshPort     int64
-	SshKey      sql.NullString
-	SshPassword sql.NullString
-	Tags        sql.NullString
+	Name           string
+	Ip             string
+	SshUser        string
+	SshPort        int64
+	SshKey         sql.NullString
+	SshPassword    sql.NullString
+	Tags           sql.NullString
+	KeyFingerprint sql.NullString
 }
 
 func (q *Queries) CreateHost(ctx context.Context, arg CreateHostParams) (Host, error) {
@@ -35,6 +36,7 @@ func (q *Queries) CreateHost(ctx context.Context, arg CreateHostParams) (Host, e
 		arg.SshKey,
 		arg.SshPassword,
 		arg.Tags,
+		arg.KeyFingerprint,
 	)
 	var i Host
 	err := row.Scan(
@@ -47,6 +49,8 @@ func (q *Queries) CreateHost(ctx context.Context, arg CreateHostParams) (Host, e
 		&i.Tags,
 		&i.CreatedAt,
 		&i.SshPassword,
+		&i.KeyFingerprint,
+		&i.KeyRotatedAt,
 	)
 	return i, err
 }
@@ -61,7 +65,7 @@ func (q *Queries) DeleteHost(ctx context.Context, id int64) error {
 }
 
 const getHost = `-- name: GetHost :one
-SELECT id, name, ip, ssh_user, ssh_port, ssh_key, tags, created_at, ssh_password FROM hosts WHERE id = ? LIMIT 1
+SELECT id, name, ip, ssh_user, ssh_port, ssh_key, tags, created_at, ssh_password, key_fingerprint, key_rotated_at FROM hosts WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetHost(ctx context.Context, id int64) (Host, error) {
@@ -77,12 +81,14 @@ func (q *Queries) GetHost(ctx context.Context, id int64) (Host, error) {
 		&i.Tags,
 		&i.CreatedAt,
 		&i.SshPassword,
+		&i.KeyFingerprint,
+		&i.KeyRotatedAt,
 	)
 	return i, err
 }
 
 const listHosts = `-- name: ListHosts :many
-SELECT id, name, ip, ssh_user, ssh_port, ssh_key, tags, created_at, ssh_password FROM hosts ORDER BY created_at DESC
+SELECT id, name, ip, ssh_user, ssh_port, ssh_key, tags, created_at, ssh_password, key_fingerprint, key_rotated_at FROM hosts ORDER BY created_at DESC
 `
 
 func (q *Queries) ListHosts(ctx context.Context) ([]Host, error) {
@@ -104,6 +110,8 @@ func (q *Queries) ListHosts(ctx context.Context) ([]Host, error) {
 			&i.Tags,
 			&i.CreatedAt,
 			&i.SshPassword,
+			&i.KeyFingerprint,
+			&i.KeyRotatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -119,18 +127,19 @@ func (q *Queries) ListHosts(ctx context.Context) ([]Host, error) {
 }
 
 const updateHost = `-- name: UpdateHost :exec
-UPDATE hosts SET name = ?, ip = ?, ssh_user = ?, ssh_port = ?, ssh_key = ?, ssh_password = ?, tags = ? WHERE id = ?
+UPDATE hosts SET name = ?, ip = ?, ssh_user = ?, ssh_port = ?, ssh_key = ?, ssh_password = ?, tags = ?, key_fingerprint = ? WHERE id = ?
 `
 
 type UpdateHostParams struct {
-	Name        string
-	Ip          string
-	SshUser     string
-	SshPort     int64
-	SshKey      sql.NullString
-	SshPassword sql.NullString
-	Tags        sql.NullString
-	ID          int64
+	Name           string
+	Ip             string
+	SshUser        string
+	SshPort        int64
+	SshKey         sql.NullString
+	SshPassword    sql.NullString
+	Tags           sql.NullString
+	KeyFingerprint sql.NullString
+	ID             int64
 }
 
 func (q *Queries) UpdateHost(ctx context.Context, arg UpdateHostParams) error {
@@ -142,6 +151,7 @@ func (q *Queries) UpdateHost(ctx context.Context, arg UpdateHostParams) error {
 		arg.SshKey,
 		arg.SshPassword,
 		arg.Tags,
+		arg.KeyFingerprint,
 		arg.ID,
 	)
 	return err

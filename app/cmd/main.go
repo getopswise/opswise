@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/getopswise/opswise/app/internal/api"
+	"github.com/getopswise/opswise/app/internal/crypto"
 	"github.com/getopswise/opswise/app/internal/db"
 	"github.com/getopswise/opswise/app/internal/db/dbq"
 	"github.com/getopswise/opswise/app/internal/models"
@@ -20,9 +21,10 @@ import (
 
 func loadConfig() models.AppConfig {
 	cfg := models.AppConfig{
-		DBPath:    "opswise.db",
-		Port:      ":8080",
-		DeployDir: filepath.Join("..", "deploy"),
+		DBPath:        "opswise.db",
+		Port:          ":8080",
+		DeployDir:     filepath.Join("..", "deploy"),
+		MasterKeyPath: "/etc/opswise/secret.key",
 	}
 
 	// Load from config.yaml if it exists
@@ -41,6 +43,9 @@ func loadConfig() models.AppConfig {
 	if v := os.Getenv("OPSWISE_DEPLOY_DIR"); v != "" {
 		cfg.DeployDir = v
 	}
+	if v := os.Getenv("OPSWISE_MASTER_KEY_PATH"); v != "" {
+		cfg.MasterKeyPath = v
+	}
 
 	return cfg
 }
@@ -50,6 +55,12 @@ func main() {
 
 	dbPath := cfg.DBPath
 	deployDir := cfg.DeployDir
+
+	masterKey, err := crypto.LoadOrGenerateMasterKey(cfg.MasterKeyPath)
+	if err != nil {
+		log.Fatalf("failed to load master key: %v", err)
+	}
+	log.Printf("Master key loaded from %s", cfg.MasterKeyPath)
 
 	database, err := db.Open(dbPath)
 	if err != nil {
@@ -62,9 +73,9 @@ func main() {
 	// Seed products and stacks
 	db.Seed(context.Background(), queries)
 
-	deploySvc := runner.NewDeployService(queries, deployDir)
+	deploySvc := runner.NewDeployService(queries, deployDir, masterKey)
 
-	hostHandler := api.NewHostHandler(queries)
+	hostHandler := api.NewHostHandler(queries, masterKey)
 	productHandler := api.NewProductHandler(queries, deploySvc, deployDir)
 	stackHandler := api.NewStackHandler(queries, deploySvc)
 	deploymentHandler := api.NewDeploymentHandler(queries, deploySvc)
