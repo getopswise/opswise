@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/getopswise/opswise/app/internal/db/dbq"
+	gitpush "github.com/getopswise/opswise/app/internal/git"
 )
 
 // DeployService manages deployment execution and log streaming.
@@ -163,6 +164,7 @@ func (s *DeployService) runDeployment(id int64, params DeployParams) {
 	if result.ExitCode == 0 {
 		appendLog("=== Deployment completed successfully ===")
 		s.finishDeployment(ctx, id, "success", logBuf.String())
+		s.tryGitPush(ctx, id, params, appendLog)
 	} else {
 		appendLog(fmt.Sprintf("=== Deployment failed (exit code %d) ===", result.ExitCode))
 		s.finishDeployment(ctx, id, "failed", logBuf.String())
@@ -192,6 +194,44 @@ func (s *DeployService) finishDeployment(ctx context.Context, id int64, status, 
 	}
 	delete(s.subscribers, id)
 	s.mu.Unlock()
+}
+
+func (s *DeployService) tryGitPush(ctx context.Context, id int64, params DeployParams, appendLog func(string)) {
+	// Check if git is enabled
+	enabled, err := s.q.GetSetting(ctx, "git_enabled")
+	if err != nil || enabled != "true" {
+		return
+	}
+
+	gitURL, _ := s.q.GetSetting(ctx, "git_url")
+	if gitURL == "" {
+		return
+	}
+
+	gitBranch, _ := s.q.GetSetting(ctx, "git_branch")
+	gitToken, _ := s.q.GetSetting(ctx, "git_token")
+
+	appendLog("")
+	appendLog("=== Pushing to Git repository ===")
+	appendLog(fmt.Sprintf("Repository: %s", gitURL))
+	appendLog(fmt.Sprintf("Branch: %s", gitBranch))
+
+	cfg := gitpush.PushConfig{
+		URL:    gitURL,
+		Branch: gitBranch,
+		Token:  gitToken,
+	}
+
+	if err := gitpush.PushDeployment(cfg, s.deployDir, id, params.TargetName, params.Mode); err != nil {
+		appendLog(fmt.Sprintf("Git push failed: %v", err))
+		log.Printf("git push deployment %d: %v", id, err)
+		return
+	}
+
+	appendLog("Git push successful.")
+	if err := s.q.SetDeploymentGitPushed(ctx, id); err != nil {
+		log.Printf("set git pushed deployment %d: %v", id, err)
+	}
 }
 
 func (s *DeployService) runAnsible(params DeployParams, appendLog func(string)) (io.Reader, <-chan Result, error) {

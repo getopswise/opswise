@@ -8,7 +8,19 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-func SettingsPage() templ.Component {
+func settingVal(vals map[string]string, key, fallback string) string {
+	if v, ok := vals[key]; ok && v != "" {
+		return v
+	}
+	return fallback
+}
+
+func isChecked(vals map[string]string, key string) bool {
+	v, ok := vals[key]
+	return ok && v == "true"
+}
+
+func SettingsPage(vals map[string]string, saved bool, message string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -41,7 +53,92 @@ func SettingsPage() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Settings</h1><div class=\"form-inline\"><h2>Git Integration</h2><form method=\"POST\" action=\"/settings\"><div class=\"form-row\"><div class=\"form-group\"><label for=\"git_url\">Git Repository URL</label> <input type=\"text\" id=\"git_url\" name=\"git_url\" placeholder=\"https://github.com/org/repo.git\"></div><div class=\"form-group\"><label for=\"git_branch\">Branch</label> <input type=\"text\" id=\"git_branch\" name=\"git_branch\" placeholder=\"main\" value=\"main\"></div></div><div class=\"form-row\"><div class=\"form-group\"><label for=\"git_token\">Access Token</label> <input type=\"password\" id=\"git_token\" name=\"git_token\" placeholder=\"Token\"></div><div class=\"form-group\"><label for=\"ssh_key_path\">Default SSH Key Path</label> <input type=\"text\" id=\"ssh_key_path\" name=\"ssh_key_path\" placeholder=\"~/.ssh/id_rsa\"></div></div><div class=\"form-actions\"><button type=\"submit\" class=\"btn-primary\">Save Settings</button></div></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Settings</h1>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if saved {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"alert alert-success mb-3\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var3 string
+				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(message)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/settings.templ`, Line: 20, Col: 13}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " <div class=\"form-inline\"><h2>Git Integration</h2><form method=\"POST\" action=\"/settings\"><div class=\"form-group\"><label class=\"checkbox-label\"><input type=\"checkbox\" name=\"git_enabled\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if isChecked(vals, "git_enabled") {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, " checked")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "> <span>Enable Git push after successful deployments</span></label></div><div class=\"form-row\"><div class=\"form-group\"><label for=\"git_url\">Git Repository URL</label> <input type=\"text\" id=\"git_url\" name=\"git_url\" placeholder=\"https://github.com/org/repo.git\" value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var4 string
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(settingVal(vals, "git_url", ""))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/settings.templ`, Line: 41, Col: 138}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\"></div><div class=\"form-group\"><label for=\"git_branch\">Branch</label> <input type=\"text\" id=\"git_branch\" name=\"git_branch\" placeholder=\"main\" value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(settingVal(vals, "git_branch", "main"))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/settings.templ`, Line: 45, Col: 124}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"></div></div><div class=\"form-row\"><div class=\"form-group\"><label for=\"git_token\">Access Token</label> <input type=\"password\" id=\"git_token\" name=\"git_token\" placeholder=\"Token\" value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var6 string
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(settingVal(vals, "git_token", ""))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/settings.templ`, Line: 51, Col: 122}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\"></div><div class=\"form-group\"><label for=\"ssh_key_path\">Default SSH Key Path</label> <input type=\"text\" id=\"ssh_key_path\" name=\"ssh_key_path\" placeholder=\"~/.ssh/id_rsa\" value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var7 string
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(settingVal(vals, "ssh_key_path", ""))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/settings.templ`, Line: 55, Col: 135}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\"></div></div><div class=\"form-actions\"><button type=\"submit\" class=\"btn-primary\">Save Settings</button></div></form></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

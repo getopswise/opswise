@@ -417,6 +417,25 @@ input::placeholder, textarea::placeholder {
     letter-spacing: 0.04em;
 }
 
+/* === Alerts === */
+.alert {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+}
+
+.alert-success {
+    background: rgba(0, 184, 148, 0.1);
+    border: 1px solid rgba(0, 184, 148, 0.3);
+    color: var(--color-success);
+}
+
+.alert-error {
+    background: rgba(225, 112, 85, 0.1);
+    border: 1px solid rgba(225, 112, 85, 0.3);
+    color: var(--color-danger);
+}
+
 /* === Empty State === */
 .empty-state {
     text-align: center;

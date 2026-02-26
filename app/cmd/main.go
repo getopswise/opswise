@@ -85,6 +85,7 @@ func main() {
 
 	// Settings
 	r.Get("/settings", settingsHandler.Page)
+	r.Post("/settings", settingsHandler.Save)
 
 	addr := ":8080"
 	log.Printf("Opswise Deploy starting on %s", addr)

@@ -1,29 +1,58 @@
 package templates
 
-templ SettingsPage() {
+func settingVal(vals map[string]string, key, fallback string) string {
+	if v, ok := vals[key]; ok && v != "" {
+		return v
+	}
+	return fallback
+}
+
+func isChecked(vals map[string]string, key string) bool {
+	v, ok := vals[key]
+	return ok && v == "true"
+}
+
+templ SettingsPage(vals map[string]string, saved bool, message string) {
 	@Layout("Settings") {
 		<h1>Settings</h1>
+		if saved {
+			<div class="alert alert-success mb-3">
+				{ message }
+			</div>
+		}
 		<div class="form-inline">
 			<h2>Git Integration</h2>
 			<form method="POST" action="/settings">
+				<div class="form-group">
+					<label class="checkbox-label">
+						<input
+							type="checkbox"
+							name="git_enabled"
+							if isChecked(vals, "git_enabled") {
+								checked
+							}
+						/>
+						<span>Enable Git push after successful deployments</span>
+					</label>
+				</div>
 				<div class="form-row">
 					<div class="form-group">
 						<label for="git_url">Git Repository URL</label>
-						<input type="text" id="git_url" name="git_url" placeholder="https://github.com/org/repo.git"/>
+						<input type="text" id="git_url" name="git_url" placeholder="https://github.com/org/repo.git" value={ settingVal(vals, "git_url", "") }/>
 					</div>
 					<div class="form-group">
 						<label for="git_branch">Branch</label>
-						<input type="text" id="git_branch" name="git_branch" placeholder="main" value="main"/>
+						<input type="text" id="git_branch" name="git_branch" placeholder="main" value={ settingVal(vals, "git_branch", "main") }/>
 					</div>
 				</div>
 				<div class="form-row">
 					<div class="form-group">
 						<label for="git_token">Access Token</label>
-						<input type="password" id="git_token" name="git_token" placeholder="Token"/>
+						<input type="password" id="git_token" name="git_token" placeholder="Token" value={ settingVal(vals, "git_token", "") }/>
 					</div>
 					<div class="form-group">
 						<label for="ssh_key_path">Default SSH Key Path</label>
-						<input type="text" id="ssh_key_path" name="ssh_key_path" placeholder="~/.ssh/id_rsa"/>
+						<input type="text" id="ssh_key_path" name="ssh_key_path" placeholder="~/.ssh/id_rsa" value={ settingVal(vals, "ssh_key_path", "") }/>
 					</div>
 				</div>
 				<div class="form-actions">
