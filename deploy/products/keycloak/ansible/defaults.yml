@@ -1,0 +1,11 @@
+# Keycloak default variables
+# These values are surfaced as form fields in the Opswise GUI.
+keycloak_version: "24.0.0"
+keycloak_port: 8080
+keycloak_admin_user: admin
+keycloak_admin_password: "changeme"
+keycloak_data_dir: /opt/keycloak
+keycloak_db_type: dev-file
+keycloak_java_package: openjdk-17-jre-headless
+keycloak_log_level: info
+keycloak_hostname: ""

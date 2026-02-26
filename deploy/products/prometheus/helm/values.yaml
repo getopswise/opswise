@@ -1,8 +1,60 @@
+# Helm values for prometheus-community/prometheus chart
+# Reference: https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus
+#
+# Install with:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm install prometheus prometheus-community/prometheus -f values.yaml
+
 server:
+  replicaCount: 1
   retention: "15d"
-  service:
-    type: ClusterIP
-    port: 9090
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
   persistentVolume:
     enabled: true
     size: 50Gi
+    storageClass: ""
+
+  service:
+    type: ClusterIP
+    port: 9090
+
+  ingress:
+    enabled: false
+    annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts: []
+    #   - prometheus.example.com
+    tls: []
+    #   - secretName: prometheus-tls
+    #     hosts:
+    #       - prometheus.example.com
+
+  global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+    scrape_timeout: 10s
+
+# Alertmanager sub-chart
+alertmanager:
+  enabled: false
+
+# kube-state-metrics sub-chart
+kube-state-metrics:
+  enabled: true
+
+# prometheus-node-exporter sub-chart
+prometheus-node-exporter:
+  enabled: true
+
+# prometheus-pushgateway sub-chart
+prometheus-pushgateway:
+  enabled: false

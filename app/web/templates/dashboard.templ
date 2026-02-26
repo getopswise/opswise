@@ -4,20 +4,98 @@ import "fmt"
 
 templ Dashboard(hostCount, productCount, deploymentCount int64) {
 	@Layout("Dashboard") {
-		<h1>Dashboard</h1>
+		<div class="hero">
+			<div class="hero-grid">
+				<div class="hero-content">
+					<span class="hero-eyebrow">Control Panel</span>
+					<h1>Welcome to Opswise Deploy</h1>
+					<p>Deploy DevOps infrastructure on your servers with a few clicks. Add hosts, pick products, and let Opswise handle the rest.</p>
+					<a href="/products" class="btn btn-primary">Get Started</a>
+				</div>
+				<div class="terminal-demo">
+					<div class="terminal-titlebar">
+						<div class="terminal-dots">
+							<span></span>
+							<span></span>
+							<span></span>
+						</div>
+						<span class="terminal-title">opswise deploy</span>
+					</div>
+					<div class="terminal-body">
+						<div class="terminal-line">
+							<span class="prompt">$</span>
+							<span class="cmd">opswise deploy --product prometheus</span>
+						</div>
+						<div class="terminal-line">
+							<span class="status-dot status-dot--success"></span>
+							<span class="status-text status-text--success">Connecting to host...</span>
+						</div>
+						<div class="terminal-line">
+							<span class="status-dot status-dot--success"></span>
+							<span class="status-text status-text--success">Running pre-checks</span>
+						</div>
+						<div class="terminal-line">
+							<span class="status-dot status-dot--success"></span>
+							<span class="status-text status-text--success">Installing packages</span>
+						</div>
+						<div class="terminal-line">
+							<span class="status-dot status-dot--running"></span>
+							<span class="status-text status-text--running">Configuring services...</span>
+						</div>
+						<div class="terminal-line">
+							<span class="status-dot status-dot--pending"></span>
+							<span class="status-text">Verifying deployment</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="section-header">
+			<h2>Overview</h2>
+			<p>Your infrastructure at a glance</p>
+		</div>
 		<div class="stats-grid">
-			<div class="stat-card">
+			<div class="stat-card stat-card--hosts">
+				<div class="stat-icon">&#9211;</div>
 				<div class="stat-value">{ fmt.Sprintf("%d", hostCount) }</div>
 				<div class="stat-label">Hosts</div>
 			</div>
-			<div class="stat-card">
+			<div class="stat-card stat-card--products">
+				<div class="stat-icon">&#9634;</div>
 				<div class="stat-value">{ fmt.Sprintf("%d", productCount) }</div>
 				<div class="stat-label">Products</div>
 			</div>
-			<div class="stat-card">
+			<div class="stat-card stat-card--deployments">
+				<div class="stat-icon">&#9889;</div>
 				<div class="stat-value">{ fmt.Sprintf("%d", deploymentCount) }</div>
 				<div class="stat-label">Deployments</div>
 			</div>
+		</div>
+		<div class="section-header">
+			<h2>Quick Actions</h2>
+			<p>Common tasks to manage your infrastructure</p>
+		</div>
+		<div class="module-grid">
+			<a href="/hosts" class="module-card module-card--teal">
+				<div class="module-icon">&#9211;</div>
+				<h3>Add Hosts</h3>
+				<p>Register new servers and manage your infrastructure inventory</p>
+			</a>
+			<a href="/products" class="module-card module-card--blue">
+				<div class="module-icon">&#9654;</div>
+				<h3>Deploy Products</h3>
+				<p>Pick from available products and deploy to your hosts</p>
+			</a>
+			<a href="/stacks" class="module-card module-card--violet">
+				<div class="module-icon">&#9733;</div>
+				<h3>View Stacks</h3>
+				<p>Manage grouped product configurations for your environments</p>
+			</a>
+			<a href="/deployments" class="module-card module-card--amber">
+				<div class="module-icon">&#9776;</div>
+				<h3>Deployments</h3>
+				<p>Track deployment history, logs, and rollback if needed</p>
+			</a>
 		</div>
 	}
 }

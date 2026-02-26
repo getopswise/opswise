@@ -1,3 +1,10 @@
+# Prometheus Docker Compose - managed by Opswise Deploy
+#
+# Environment variables (with defaults):
+#   PROMETHEUS_VERSION  - Prometheus image tag (default: 2.51.0)
+#   PROMETHEUS_PORT     - Host port to expose (default: 9090)
+#   PROMETHEUS_RETENTION - TSDB retention period (default: 15d)
+
 services:
   prometheus:
     image: prom/prometheus:v${PROMETHEUS_VERSION:-2.51.0}
@@ -7,10 +14,27 @@ services:
       - "${PROMETHEUS_PORT:-9090}:9090"
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   prometheus_data:
+    driver: local
+
+networks:
+  prometheus:
+    driver: bridge

@@ -1,9 +1,78 @@
+# Helm values for argo/argo-cd chart
+# Chart repo: helm repo add argo https://argoproj.github.io/argo-helm
+# Install:    helm install argocd argo/argo-cd -f values.yaml
+
+global:
+  logging:
+    level: info
+
 server:
+  replicas: 1
   service:
     type: ClusterIP
-    port: 443
+    servicePortHttp: 80
+    servicePortHttps: 443
   extraArgs:
     - --insecure
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  ingress:
+    enabled: false
+    hosts: []
+    annotations: {}
+    tls: []
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+redis:
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+applicationSet:
+  enabled: true
+  replicas: 1
+
 configs:
   params:
     server.insecure: true
+  cm:
+    url: https://argocd.example.com
+    exec.enabled: "false"
+    admin.enabled: "true"
+  rbac:
+    policy.default: role:readonly

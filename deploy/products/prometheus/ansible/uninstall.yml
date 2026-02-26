@@ -2,20 +2,38 @@
 - name: Uninstall Prometheus
   hosts: all
   become: true
+  vars:
+    prometheus_user: prometheus
+    prometheus_group: prometheus
+    prometheus_config_dir: /etc/prometheus
+    prometheus_data_dir: /var/lib/prometheus
+    prometheus_remove_data: false
+    prometheus_remove_user: false
+
   tasks:
-    - name: Stop Prometheus
+    # ----------------------------------------------------------------
+    # Stop and disable service
+    # ----------------------------------------------------------------
+    - name: Stop Prometheus service
       systemd:
         name: prometheus
         state: stopped
         enabled: false
       ignore_errors: true
 
-    - name: Remove systemd service
+    - name: Remove Prometheus systemd service file
       file:
         path: /etc/systemd/system/prometheus.service
         state: absent
 
-    - name: Remove binaries
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: true
+
+    # ----------------------------------------------------------------
+    # Remove binaries
+    # ----------------------------------------------------------------
+    - name: Remove Prometheus binaries
       file:
         path: "/usr/local/bin/{{ item }}"
         state: absent
@@ -23,6 +41,35 @@
         - prometheus
         - promtool
 
-    - name: Reload systemd
-      systemd:
-        daemon_reload: true
+    # ----------------------------------------------------------------
+    # Remove configuration
+    # ----------------------------------------------------------------
+    - name: Remove Prometheus configuration directory
+      file:
+        path: "{{ prometheus_config_dir }}"
+        state: absent
+
+    # ----------------------------------------------------------------
+    # Optionally remove data directory
+    # ----------------------------------------------------------------
+    - name: Remove Prometheus data directory
+      file:
+        path: "{{ prometheus_data_dir }}"
+        state: absent
+      when: prometheus_remove_data | bool
+
+    # ----------------------------------------------------------------
+    # Optionally remove user and group
+    # ----------------------------------------------------------------
+    - name: Remove prometheus user
+      user:
+        name: "{{ prometheus_user }}"
+        state: absent
+        remove: true
+      when: prometheus_remove_user | bool
+
+    - name: Remove prometheus group
+      group:
+        name: "{{ prometheus_group }}"
+        state: absent
+      when: prometheus_remove_user | bool

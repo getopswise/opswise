@@ -1,14 +1,81 @@
 services:
-  harbor:
-    image: goharbor/harbor-core:v${HARBOR_VERSION:-2.10.0}
-    container_name: harbor
+  harbor-portal:
+    image: goharbor/harbor-portal:v${HARBOR_VERSION:-2.10.0}
+    container_name: harbor-portal
     restart: unless-stopped
     ports:
-      - "${HARBOR_PORT:-8080}:8080"
+      - "${HARBOR_PORT:-80}:8080"
+    depends_on:
+      - harbor-core
+    networks:
+      - harbor
+
+  harbor-core:
+    image: goharbor/harbor-core:v${HARBOR_VERSION:-2.10.0}
+    container_name: harbor-core
+    restart: unless-stopped
     environment:
+      CORE_SECRET: ${HARBOR_CORE_SECRET:-harbor-core-secret}
       HARBOR_ADMIN_PASSWORD: ${HARBOR_ADMIN_PASSWORD:-changeme}
+      DATABASE_TYPE: postgresql
+      POSTGRESQL_HOST: harbor-db
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: harbor
+      POSTGRESQL_PASSWORD: ${HARBOR_DB_PASSWORD:-harbor-db-pass}
+      POSTGRESQL_DATABASE: registry
+      REGISTRY_URL: http://registry:5000
+      PORTAL_URL: http://harbor-portal:8080
+      REDIS_URL: redis://redis:6379/0
+      _REDIS_URL_REG: redis://redis:6379/1
+      CORE_URL: http://harbor-core:8080
+      CORE_LOCAL_URL: http://127.0.0.1:8080
+      LOG_LEVEL: info
     volumes:
-      - harbor_data:/data
+      - harbor_core_data:/data
+    depends_on:
+      - harbor-db
+      - redis
+      - registry
+    networks:
+      - harbor
+
+  harbor-db:
+    image: goharbor/harbor-db:v${HARBOR_VERSION:-2.10.0}
+    container_name: harbor-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${HARBOR_DB_PASSWORD:-harbor-db-pass}
+    volumes:
+      - harbor_db_data:/var/lib/postgresql/data
+    networks:
+      - harbor
+
+  registry:
+    image: goharbor/registry-photon:v${HARBOR_VERSION:-2.10.0}
+    container_name: harbor-registry
+    restart: unless-stopped
+    environment:
+      REGISTRY_HTTP_SECRET: ${HARBOR_REGISTRY_SECRET:-registry-secret}
+    volumes:
+      - harbor_registry_data:/storage
+    networks:
+      - harbor
+
+  redis:
+    image: goharbor/redis-photon:v${HARBOR_VERSION:-2.10.0}
+    container_name: harbor-redis
+    restart: unless-stopped
+    volumes:
+      - harbor_redis_data:/var/lib/redis
+    networks:
+      - harbor
+
+networks:
+  harbor:
+    driver: bridge
 
 volumes:
-  harbor_data:
+  harbor_core_data:
+  harbor_db_data:
+  harbor_registry_data:
+  harbor_redis_data:

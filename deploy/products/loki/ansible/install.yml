@@ -7,53 +7,88 @@
     loki_port: 3100
     loki_data_dir: /var/lib/loki
     loki_config_dir: /etc/loki
+    loki_user: loki
+    loki_group: loki
+    loki_retention_period: "168h"
   tasks:
+    - name: Create loki group
+      group:
+        name: "{{ loki_group }}"
+        system: true
+        state: present
+
     - name: Create loki user
       user:
-        name: loki
+        name: "{{ loki_user }}"
+        group: "{{ loki_group }}"
         system: true
         shell: /usr/sbin/nologin
         create_home: false
 
-    - name: Create directories
+    - name: Create config directory
+      file:
+        path: "{{ loki_config_dir }}"
+        state: directory
+        owner: "{{ loki_user }}"
+        group: "{{ loki_group }}"
+        mode: "0755"
+
+    - name: Create data directories
       file:
         path: "{{ item }}"
         state: directory
-        owner: loki
-        group: loki
+        owner: "{{ loki_user }}"
+        group: "{{ loki_group }}"
+        mode: "0755"
       loop:
-        - "{{ loki_config_dir }}"
         - "{{ loki_data_dir }}"
-
-    - name: Download Loki
-      get_url:
-        url: "https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-amd64.zip"
-        dest: /tmp/loki.zip
+        - "{{ loki_data_dir }}/chunks"
+        - "{{ loki_data_dir }}/rules"
+        - "{{ loki_data_dir }}/boltdb-shipper-active"
+        - "{{ loki_data_dir }}/boltdb-shipper-cache"
+        - "{{ loki_data_dir }}/compactor"
 
     - name: Install unzip
       apt:
         name: unzip
         state: present
+        update_cache: true
 
-    - name: Extract Loki
-      shell: unzip -o /tmp/loki.zip -d /tmp/loki-bin
+    - name: Download Loki binary
+      get_url:
+        url: "https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-amd64.zip"
+        dest: /tmp/loki-{{ loki_version }}.zip
+        mode: "0644"
+
+    - name: Extract Loki binary
+      shell: unzip -o /tmp/loki-{{ loki_version }}.zip -d /tmp/loki-bin
       args:
         creates: /tmp/loki-bin/loki-linux-amd64
 
-    - name: Install binary
+    - name: Install Loki binary
       copy:
         src: /tmp/loki-bin/loki-linux-amd64
         dest: /usr/local/bin/loki
         remote_src: true
+        owner: root
+        group: root
         mode: "0755"
+      notify: Restart loki
 
-    - name: Create default config
+    - name: Template Loki configuration
       copy:
-        dest: "{{ loki_config_dir }}/loki.yml"
+        dest: "{{ loki_config_dir }}/loki-config.yaml"
+        owner: "{{ loki_user }}"
+        group: "{{ loki_group }}"
+        mode: "0644"
         content: |
           auth_enabled: false
+
           server:
             http_listen_port: {{ loki_port }}
+            grpc_listen_port: 9096
+            log_level: info
+
           common:
             path_prefix: {{ loki_data_dir }}
             storage:
@@ -64,36 +99,85 @@
             ring:
               kvstore:
                 store: inmemory
+
+          ingester:
+            wal:
+              enabled: true
+              dir: {{ loki_data_dir }}/wal
+            lifecycler:
+              ring:
+                kvstore:
+                  store: inmemory
+                replication_factor: 1
+            chunk_idle_period: 1h
+            max_chunk_age: 1h
+            chunk_target_size: 1048576
+            chunk_retain_period: 30s
+
           schema_config:
             configs:
-              - from: 2020-10-24
+              - from: "2020-10-24"
                 store: tsdb
                 object_store: filesystem
                 schema: v13
                 index:
                   prefix: index_
                   period: 24h
-        owner: loki
-        group: loki
+
+          storage_config:
+            filesystem:
+              directory: {{ loki_data_dir }}/chunks
+            tsdb_shipper:
+              active_index_directory: {{ loki_data_dir }}/boltdb-shipper-active
+              cache_location: {{ loki_data_dir }}/boltdb-shipper-cache
+              cache_ttl: 24h
+
+          compactor:
+            working_directory: {{ loki_data_dir }}/compactor
+            compaction_interval: 10m
+            retention_enabled: true
+            retention_delete_delay: 2h
+            retention_delete_worker_count: 150
+            delete_request_store: filesystem
+
+          limits_config:
+            retention_period: {{ loki_retention_period }}
+            reject_old_samples: true
+            reject_old_samples_max_age: 168h
+            max_query_series: 500
+            max_query_parallelism: 32
+
+          analytics:
+            reporting_enabled: false
+      notify: Restart loki
 
     - name: Create systemd service
       copy:
         dest: /etc/systemd/system/loki.service
+        owner: root
+        group: root
+        mode: "0644"
         content: |
           [Unit]
-          Description=Loki
+          Description=Loki Log Aggregation System
+          Documentation=https://grafana.com/docs/loki/latest/
           Wants=network-online.target
           After=network-online.target
 
           [Service]
-          User=loki
-          Group=loki
+          User={{ loki_user }}
+          Group={{ loki_group }}
           Type=simple
-          ExecStart=/usr/local/bin/loki -config.file={{ loki_config_dir }}/loki.yml
-          Restart=always
+          ExecStart=/usr/local/bin/loki -config.file={{ loki_config_dir }}/loki-config.yaml
+          ExecReload=/bin/kill -HUP $MAINPID
+          Restart=on-failure
+          RestartSec=5
+          LimitNOFILE=65536
+          TimeoutStopSec=30
 
           [Install]
           WantedBy=multi-user.target
+      notify: Restart loki
 
     - name: Enable and start Loki
       systemd:
@@ -101,3 +185,28 @@
         daemon_reload: true
         enabled: true
         state: started
+
+    - name: Wait for Loki to be ready
+      uri:
+        url: "http://localhost:{{ loki_port }}/ready"
+        method: GET
+        status_code: 200
+      register: loki_ready
+      until: loki_ready.status == 200
+      retries: 30
+      delay: 2
+
+    - name: Clean up temporary files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/loki-{{ loki_version }}.zip
+        - /tmp/loki-bin
+
+  handlers:
+    - name: Restart loki
+      systemd:
+        name: loki
+        daemon_reload: true
+        state: restarted

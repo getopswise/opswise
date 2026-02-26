@@ -1,10 +1,52 @@
+# Helm values for goharbor/harbor chart
+# Chart repo: helm repo add harbor https://helm.goharbor.io
+# Install:    helm install harbor harbor/harbor -f values.yaml
+
 harborAdminPassword: changeme
+
+externalURL: https://harbor.example.com
+
 expose:
-  type: clusterIP
+  type: nodePort
   tls:
     enabled: false
+  nodePort:
+    ports:
+      http:
+        nodePort: 30080
+      https:
+        nodePort: 30443
+  ingress:
+    hosts:
+      core: harbor.example.com
+    annotations: {}
+
 persistence:
   enabled: true
+  resourcePolicy: keep
   persistentVolumeClaim:
     registry:
       size: 50Gi
+    database:
+      size: 5Gi
+    redis:
+      size: 1Gi
+    trivy:
+      size: 5Gi
+
+database:
+  type: internal
+  internal:
+    password: harbor-db-pass
+
+redis:
+  type: internal
+
+trivy:
+  enabled: true
+
+metrics:
+  enabled: false
+
+updateStrategy:
+  type: RollingUpdate

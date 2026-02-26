@@ -4,12 +4,16 @@ description: GitLab + Harbor + Keycloak + ArgoCD for a full development platform
 products:
   - name: gitlab
     config:
+      external_url: "{{ .GitLabURL }}"
       port: 80
   - name: harbor
     config:
-      port: 8080
+      port: 80
+      admin_password: "{{ .HarborAdminPassword }}"
   - name: keycloak
     config:
-      port: 8081
+      port: 8080
+      admin_password: "{{ .KeycloakAdminPassword }}"
   - name: argocd
-    config: {}
+    config:
+      server_port: 443

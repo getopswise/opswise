@@ -53,7 +53,7 @@ func seedProducts(ctx context.Context, q *dbq.Queries) {
 			Description: ns("Open source container image registry with security and access controls"),
 			Version:     ns("2.10.0"),
 			Icon:        ns("package"),
-			Modes:       `["compose","helm"]`,
+			Modes:       `["ansible","compose","helm"]`,
 		},
 		{
 			Name:        "keycloak",
@@ -61,7 +61,7 @@ func seedProducts(ctx context.Context, q *dbq.Queries) {
 			Description: ns("Open source identity and access management"),
 			Version:     ns("24.0.0"),
 			Icon:        ns("shield"),
-			Modes:       `["compose","helm"]`,
+			Modes:       `["ansible","compose","helm"]`,
 		},
 		{
 			Name:        "argocd",

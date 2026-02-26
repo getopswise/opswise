@@ -1,6 +1,51 @@
+# Helm values for bitnami/keycloak chart
+# Chart repo: helm repo add bitnami https://charts.bitnami.com/bitnami
+# Install:    helm install keycloak bitnami/keycloak -f values.yaml
+
 auth:
   adminUser: admin
   adminPassword: changeme
+
 service:
   type: ClusterIP
-  port: 8080
+  ports:
+    http: 8080
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+persistence:
+  enabled: true
+  size: 8Gi
+
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: keycloak-pg-pass
+    database: keycloak
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+ingress:
+  enabled: false
+  hostname: keycloak.example.com
+  annotations: {}
+  tls: false
+
+logging:
+  level: INFO
+
+metrics:
+  enabled: false
+
+production: false
+proxy: edge

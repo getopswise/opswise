@@ -1,0 +1,159 @@
+---
+- name: Install Harbor
+  hosts: all
+  become: true
+  vars_files:
+    - defaults.yml
+
+  tasks:
+    - name: Install dependencies
+      ansible.builtin.apt:
+        name:
+          - curl
+          - gnupg
+          - ca-certificates
+          - apt-transport-https
+          - software-properties-common
+        state: present
+        update_cache: true
+
+    - name: Install Docker (if not present)
+      block:
+        - name: Add Docker GPG key
+          ansible.builtin.shell: |
+            install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg \
+              -o /etc/apt/keyrings/docker.asc
+            chmod a+r /etc/apt/keyrings/docker.asc
+          args:
+            creates: /etc/apt/keyrings/docker.asc
+
+        - name: Add Docker APT repository
+          ansible.builtin.shell: |
+            echo "deb [arch={{ ansible_architecture | replace('x86_64', 'amd64') }} \
+              signed-by=/etc/apt/keyrings/docker.asc] \
+              https://download.docker.com/linux/{{ ansible_distribution | lower }} \
+              {{ ansible_distribution_release }} stable" \
+              > /etc/apt/sources.list.d/docker.list
+          args:
+            creates: /etc/apt/sources.list.d/docker.list
+
+        - name: Install Docker packages
+          ansible.builtin.apt:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-compose-plugin
+            state: present
+            update_cache: true
+
+        - name: Ensure Docker is running
+          ansible.builtin.systemd:
+            name: docker
+            state: started
+            enabled: true
+
+    - name: Create Harbor directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ harbor_install_dir }}"
+        - "{{ harbor_data_dir }}"
+
+    - name: Download Harbor offline installer
+      ansible.builtin.get_url:
+        url: "https://github.com/goharbor/harbor/releases/download/v{{ harbor_version }}/harbor-offline-installer-v{{ harbor_version }}.tgz"
+        dest: "/tmp/harbor-offline-installer-v{{ harbor_version }}.tgz"
+        mode: "0644"
+
+    - name: Extract Harbor installer
+      ansible.builtin.unarchive:
+        src: "/tmp/harbor-offline-installer-v{{ harbor_version }}.tgz"
+        dest: "{{ harbor_install_dir }}"
+        remote_src: true
+        extra_opts:
+          - --strip-components=1
+
+    - name: Template harbor.yml configuration
+      ansible.builtin.copy:
+        dest: "{{ harbor_install_dir }}/harbor.yml"
+        mode: "0600"
+        content: |
+          hostname: {{ harbor_hostname }}
+
+          http:
+            port: {{ harbor_port }}
+
+          {% if harbor_protocol == 'https' %}
+          https:
+            port: {{ harbor_https_port }}
+            certificate: /etc/harbor/ssl/cert.pem
+            private_key: /etc/harbor/ssl/key.pem
+          {% endif %}
+
+          harbor_admin_password: {{ harbor_admin_password }}
+
+          database:
+            password: {{ harbor_db_password }}
+            max_idle_conns: 50
+            max_open_conns: 1000
+
+          data_volume: {{ harbor_data_dir }}
+
+          trivy:
+            ignore_unfixed: false
+            skip_update: false
+            offline_scan: false
+            security_check: vuln
+            insecure: false
+
+          jobservice:
+            max_job_workers: 10
+            job_loggers:
+              - STD_OUTPUT
+              - FILE
+            logger_sweeper_duration: 1
+
+          notification:
+            webhook_job_max_retry: 3
+
+          log:
+            level: info
+            local:
+              rotate_count: 50
+              rotate_size: 200M
+              location: /var/log/harbor
+      notify: Reconfigure Harbor
+
+    - name: Run Harbor installer
+      ansible.builtin.shell: |
+        cd {{ harbor_install_dir }} && \
+        ./install.sh {% if harbor_with_trivy %}--with-trivy{% endif %}
+      args:
+        creates: "{{ harbor_install_dir }}/docker-compose.yml"
+
+    - name: Wait for Harbor to be ready
+      ansible.builtin.uri:
+        url: "{{ harbor_protocol }}://localhost:{{ harbor_port }}/api/v2.0/health"
+        validate_certs: false
+        status_code: 200
+      register: harbor_health
+      retries: 30
+      delay: 10
+      until: harbor_health.status == 200
+
+    - name: Clean up downloaded installer
+      ansible.builtin.file:
+        path: "/tmp/harbor-offline-installer-v{{ harbor_version }}.tgz"
+        state: absent
+
+  handlers:
+    - name: Reconfigure Harbor
+      ansible.builtin.shell: |
+        cd {{ harbor_install_dir }} && \
+        docker compose down && \
+        ./prepare && \
+        docker compose up -d

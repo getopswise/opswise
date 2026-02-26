@@ -4,9 +4,16 @@
   become: true
   vars:
     gitlab_version: "16.11.0"
+    gitlab_domain: "gitlab.example.com"
     gitlab_port: 80
+    gitlab_ssh_port: 2222
+    gitlab_data_dir: /var/opt/gitlab
+    gitlab_config_dir: /etc/gitlab
     gitlab_external_url: "http://gitlab.example.com"
     gitlab_root_password: "changeme"
+    gitlab_puma_workers: 2
+    gitlab_sidekiq_concurrency: 10
+    gitlab_shared_buffers: "256MB"
   tasks:
     - name: Install dependencies
       apt:
@@ -16,28 +23,100 @@
           - ca-certificates
           - tzdata
           - perl
+          - postfix
         state: present
         update_cache: true
 
-    - name: Add GitLab repository
+    - name: Ensure OpenSSH server is running
+      systemd:
+        name: sshd
+        enabled: true
+        state: started
+
+    - name: Add GitLab APT repository
       shell: |
         curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | bash
       args:
         creates: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
 
-    - name: Install GitLab CE
+    - name: Install GitLab CE package
       apt:
-        name: "gitlab-ce"
+        name: "gitlab-ce={{ gitlab_version }}-ce.0"
         state: present
+        update_cache: true
       environment:
         EXTERNAL_URL: "{{ gitlab_external_url }}"
         GITLAB_ROOT_PASSWORD: "{{ gitlab_root_password }}"
 
-    - name: Configure GitLab external URL
-      lineinfile:
-        path: /etc/gitlab/gitlab.rb
-        regexp: "^external_url"
-        line: "external_url '{{ gitlab_external_url }}'"
+    - name: Ensure config directory exists
+      file:
+        path: "{{ gitlab_config_dir }}"
+        state: directory
+        mode: "0775"
 
+    - name: Template gitlab.rb configuration
+      copy:
+        dest: "{{ gitlab_config_dir }}/gitlab.rb"
+        mode: "0600"
+        content: |
+          # GitLab CE configuration - managed by Opswise
+          external_url '{{ gitlab_external_url }}'
+
+          # Web server
+          nginx['listen_port'] = {{ gitlab_port }}
+          nginx['listen_https'] = false
+
+          # SSH
+          gitlab_rails['gitlab_shell_ssh_port'] = {{ gitlab_ssh_port }}
+
+          # Puma (application server)
+          puma['worker_processes'] = {{ gitlab_puma_workers }}
+
+          # Sidekiq (background jobs)
+          sidekiq['max_concurrency'] = {{ gitlab_sidekiq_concurrency }}
+
+          # PostgreSQL tuning
+          postgresql['shared_buffers'] = '{{ gitlab_shared_buffers }}'
+
+          # Data directories
+          git_data_dirs({
+            "default" => {
+              "path" => "{{ gitlab_data_dir }}/git-data"
+            }
+          })
+      notify: Reconfigure GitLab
+
+    - name: Ensure data directory exists
+      file:
+        path: "{{ gitlab_data_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Reconfigure GitLab
+      command: gitlab-ctl reconfigure
+      register: reconfigure_result
+      changed_when: reconfigure_result.rc == 0
+
+    - name: Wait for GitLab to be ready
+      uri:
+        url: "http://localhost:{{ gitlab_port }}/-/readiness"
+        method: GET
+        status_code: 200
+        return_content: false
+      register: gitlab_ready
+      until: gitlab_ready.status == 200
+      retries: 30
+      delay: 10
+
+    - name: Verify GitLab services are running
+      command: gitlab-ctl status
+      register: gitlab_status
+      changed_when: false
+
+    - name: Display GitLab status
+      debug:
+        var: gitlab_status.stdout_lines
+
+  handlers:
     - name: Reconfigure GitLab
       command: gitlab-ctl reconfigure

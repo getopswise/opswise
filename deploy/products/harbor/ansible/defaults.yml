@@ -1,0 +1,14 @@
+---
+# Harbor default variables
+# These are surfaced as configurable form fields in the Opswise GUI.
+
+harbor_version: "2.10.0"
+harbor_hostname: "harbor.example.com"
+harbor_port: 80
+harbor_https_port: 443
+harbor_admin_password: "changeme"
+harbor_data_dir: /data/harbor
+harbor_install_dir: /opt/harbor
+harbor_db_password: "harbor_db_pass"
+harbor_with_trivy: true
+harbor_protocol: "http"

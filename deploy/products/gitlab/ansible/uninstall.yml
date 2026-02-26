@@ -2,13 +2,54 @@
 - name: Uninstall GitLab CE
   hosts: all
   become: true
+  vars:
+    gitlab_data_dir: /var/opt/gitlab
+    gitlab_config_dir: /etc/gitlab
+    gitlab_remove_data: false
   tasks:
-    - name: Stop GitLab
+    - name: Stop all GitLab services
       command: gitlab-ctl stop
       ignore_errors: true
 
-    - name: Remove GitLab package
+    - name: Unregister GitLab services
+      command: gitlab-ctl uninstall
+      ignore_errors: true
+
+    - name: Remove GitLab CE package
       apt:
         name: gitlab-ce
         state: absent
         purge: true
+
+    - name: Remove GitLab APT repository
+      file:
+        path: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
+        state: absent
+
+    - name: Remove GitLab runner cache
+      file:
+        path: /var/opt/gitlab
+        state: absent
+      when: gitlab_remove_data | bool
+
+    - name: Remove GitLab config directory
+      file:
+        path: "{{ gitlab_config_dir }}"
+        state: absent
+      when: gitlab_remove_data | bool
+
+    - name: Remove GitLab data directory
+      file:
+        path: "{{ gitlab_data_dir }}"
+        state: absent
+      when: gitlab_remove_data | bool
+
+    - name: Remove GitLab log directory
+      file:
+        path: /var/log/gitlab
+        state: absent
+      when: gitlab_remove_data | bool
+
+    - name: Clean up APT cache
+      apt:
+        autoclean: true

@@ -1,0 +1,33 @@
+---
+- name: Uninstall Keycloak
+  hosts: all
+  become: true
+  vars:
+    keycloak_data_dir: /opt/keycloak
+  tasks:
+    - name: Stop Keycloak service
+      systemd:
+        name: keycloak
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove Keycloak systemd unit
+      file:
+        path: /etc/systemd/system/keycloak.service
+        state: absent
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: true
+
+    - name: Remove Keycloak installation directory
+      file:
+        path: "{{ keycloak_data_dir }}"
+        state: absent
+
+    - name: Remove keycloak system user
+      user:
+        name: keycloak
+        state: absent
+        remove: true

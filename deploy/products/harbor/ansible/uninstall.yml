@@ -1,0 +1,31 @@
+---
+- name: Uninstall Harbor
+  hosts: all
+  become: true
+  vars_files:
+    - defaults.yml
+  vars:
+    harbor_remove_data: false
+
+  tasks:
+    - name: Stop Harbor services
+      ansible.builtin.shell: |
+        cd {{ harbor_install_dir }} && docker compose down
+      ignore_errors: true
+
+    - name: Remove Harbor installation directory
+      ansible.builtin.file:
+        path: "{{ harbor_install_dir }}"
+        state: absent
+
+    - name: Remove Harbor data directory
+      ansible.builtin.file:
+        path: "{{ harbor_data_dir }}"
+        state: absent
+      when: harbor_remove_data | bool
+
+    - name: Remove Harbor log directory
+      ansible.builtin.file:
+        path: /var/log/harbor
+        state: absent
+      when: harbor_remove_data | bool

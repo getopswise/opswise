@@ -2,24 +2,55 @@
 - name: Uninstall Loki
   hosts: all
   become: true
+  vars:
+    loki_data_dir: /var/lib/loki
+    loki_config_dir: /etc/loki
+    loki_user: loki
+    loki_group: loki
+    loki_remove_data: false
+    loki_remove_user: false
   tasks:
-    - name: Stop Loki
+    - name: Stop and disable Loki service
       systemd:
         name: loki
         state: stopped
         enabled: false
       ignore_errors: true
 
-    - name: Remove systemd service
+    - name: Remove systemd service file
       file:
         path: /etc/systemd/system/loki.service
         state: absent
 
-    - name: Remove binary
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: true
+
+    - name: Remove Loki binary
       file:
         path: /usr/local/bin/loki
         state: absent
 
-    - name: Reload systemd
-      systemd:
-        daemon_reload: true
+    - name: Remove Loki configuration directory
+      file:
+        path: "{{ loki_config_dir }}"
+        state: absent
+
+    - name: Remove Loki data directory
+      file:
+        path: "{{ loki_data_dir }}"
+        state: absent
+      when: loki_remove_data | bool
+
+    - name: Remove loki user
+      user:
+        name: "{{ loki_user }}"
+        state: absent
+        remove: true
+      when: loki_remove_user | bool
+
+    - name: Remove loki group
+      group:
+        name: "{{ loki_group }}"
+        state: absent
+      when: loki_remove_user | bool

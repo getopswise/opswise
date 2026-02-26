@@ -1,0 +1,101 @@
+---
+- name: Install Keycloak
+  hosts: all
+  become: true
+  vars:
+    keycloak_version: "24.0.0"
+    keycloak_port: 8080
+    keycloak_admin_user: admin
+    keycloak_admin_password: "changeme"
+    keycloak_data_dir: /opt/keycloak
+    keycloak_db_type: dev-file
+    keycloak_java_package: openjdk-17-jre-headless
+  tasks:
+    - name: Install Java 17
+      apt:
+        name: "{{ keycloak_java_package }}"
+        state: present
+        update_cache: true
+
+    - name: Create Keycloak installation directory
+      file:
+        path: "{{ keycloak_data_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Download Keycloak
+      get_url:
+        url: "https://github.com/keycloak/keycloak/releases/download/{{ keycloak_version }}/keycloak-{{ keycloak_version }}.tar.gz"
+        dest: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
+        mode: "0644"
+
+    - name: Extract Keycloak
+      unarchive:
+        src: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
+        dest: "{{ keycloak_data_dir }}"
+        remote_src: true
+        extra_opts:
+          - --strip-components=1
+        creates: "{{ keycloak_data_dir }}/bin/kc.sh"
+
+    - name: Create keycloak system user
+      user:
+        name: keycloak
+        system: true
+        shell: /usr/sbin/nologin
+        home: "{{ keycloak_data_dir }}"
+        create_home: false
+
+    - name: Set ownership on Keycloak directory
+      file:
+        path: "{{ keycloak_data_dir }}"
+        owner: keycloak
+        group: keycloak
+        recurse: true
+
+    - name: Create Keycloak systemd service
+      copy:
+        dest: /etc/systemd/system/keycloak.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Keycloak Identity and Access Management
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=exec
+          User=keycloak
+          Group=keycloak
+          WorkingDirectory={{ keycloak_data_dir }}
+          Environment=KEYCLOAK_ADMIN={{ keycloak_admin_user }}
+          Environment=KEYCLOAK_ADMIN_PASSWORD={{ keycloak_admin_password }}
+          ExecStart={{ keycloak_data_dir }}/bin/kc.sh start-dev --http-port={{ keycloak_port }} --db={{ keycloak_db_type }}
+          Restart=on-failure
+          RestartSec=10
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: true
+
+    - name: Enable and start Keycloak
+      systemd:
+        name: keycloak
+        enabled: true
+        state: started
+
+    - name: Wait for Keycloak to be ready
+      wait_for:
+        port: "{{ keycloak_port }}"
+        host: 127.0.0.1
+        delay: 5
+        timeout: 120
+
+    - name: Clean up downloaded archive
+      file:
+        path: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
+        state: absent

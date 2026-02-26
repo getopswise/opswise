@@ -1,8 +1,102 @@
+# Helm values for grafana/grafana chart
+# Reference: https://github.com/grafana/helm-charts/tree/main/charts/grafana
+
+replicas: 1
+
 adminUser: admin
 adminPassword: changeme
+
 service:
   type: ClusterIP
   port: 3000
+  annotations: {}
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
 persistence:
   enabled: true
   size: 10Gi
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+
+ingress:
+  enabled: false
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts: []
+  #   - grafana.example.com
+  tls: []
+  #   - secretName: grafana-tls
+  #     hosts:
+  #       - grafana.example.com
+
+grafana.ini:
+  server:
+    root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
+  security:
+    disable_initial_admin_creation: false
+  users:
+    allow_sign_up: false
+  auth.anonymous:
+    enabled: false
+  analytics:
+    reporting_enabled: false
+    check_for_updates: false
+    check_for_plugin_updates: false
+  log:
+    mode: console
+    level: info
+
+datasources: {}
+#  datasources.yaml:
+#    apiVersion: 1
+#    datasources:
+#      - name: Prometheus
+#        type: prometheus
+#        url: http://prometheus:9090
+#        access: proxy
+#        isDefault: true
+
+dashboardProviders: {}
+#  dashboardproviders.yaml:
+#    apiVersion: 1
+#    providers:
+#      - name: default
+#        orgId: 1
+#        folder: ""
+#        type: file
+#        disableDeletion: false
+#        editable: true
+#        options:
+#          path: /var/lib/grafana/dashboards/default
+
+plugins: []
+# - grafana-piechart-panel
+# - grafana-clock-panel
+
+sidecar:
+  dashboards:
+    enabled: false
+  datasources:
+    enabled: false
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,4 +1,13 @@
+# GitLab CE default variables
+# These values are surfaced as form fields in the Opswise GUI.
 gitlab_version: "16.11.0"
+gitlab_domain: "gitlab.example.com"
 gitlab_port: 80
+gitlab_ssh_port: 2222
+gitlab_data_dir: /var/opt/gitlab
+gitlab_config_dir: /etc/gitlab
 gitlab_external_url: "http://gitlab.example.com"
 gitlab_root_password: "changeme"
+gitlab_puma_workers: 2
+gitlab_sidekiq_concurrency: 10
+gitlab_shared_buffers: "256MB"
