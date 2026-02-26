@@ -15,7 +15,7 @@ All generated automation code can optionally be pushed to a Git repository.
 ## Tech Stack
 
 ### Backend
-- Language: Go 1.22+
+- Language: Go 1.24+
 - Web Framework: net/http (stdlib) + chi router
 - Templating: Templ (https://templ.guide)
 - Frontend interaction: HTMX
@@ -23,19 +23,23 @@ All generated automation code can optionally be pushed to a Git repository.
 - ORM/Query: sqlc for type-safe queries
 - Migrations: golang-migrate
 - Ansible execution: os/exec calling ansible-playbook
-- Config: environment variables + config.yaml
+- Config: environment variables, optional config.yaml override
 
 ### Frontend
-- HTMX 1.9
-- Alpine.js (minimal JS where needed)
+- HTMX 1.9 + SSE extension for live log streaming
 - CSS: plain CSS with CSS variables, no framework
-- No Node.js, no build step
+- No Node.js, no JavaScript frameworks, no build step
 
 ### Deployment of Opswise itself
 - Single Go binary
 - Systemd service
-- Docker image (optional)
+- Docker image (Dockerfile included)
 - SQLite database file: opswise.db
+
+### Build
+- Makefile with targets: build, run, dev, generate, templ-generate, sqlc-generate, docker, docker-run, clean
+- `templ generate` after changing .templ files
+- `sqlc generate` from app/ dir after changing .sql query files
 
 ---
 
@@ -60,7 +64,9 @@ opswise/
 │   │   ├── runner/
 │   │   │   ├── ansible.go        # ansible-playbook executor
 │   │   │   ├── helm.go           # helm executor
-│   │   │   └── compose.go        # docker compose executor
+│   │   │   ├── compose.go        # docker compose executor
+│   │   │   ├── deploy.go         # DeployService: orchestration, log streaming
+│   │   │   └── defaults.go       # defaults.yml parser for auto-form fields
 │   │   ├── git/
 │   │   │   └── push.go           # push generated code to git
 │   │   └── models/
@@ -70,9 +76,15 @@ opswise/
 │   │   │   ├── layout.templ
 │   │   │   ├── dashboard.templ
 │   │   │   ├── hosts.templ
+│   │   │   ├── host_detail.templ
 │   │   │   ├── products.templ
+│   │   │   ├── product_detail.templ
 │   │   │   ├── stacks.templ
-│   │   │   └── deployments.templ
+│   │   │   ├── stack_detail.templ
+│   │   │   ├── deployments.templ
+│   │   │   ├── deployment_detail.templ
+│   │   │   ├── settings.templ
+│   │   │   └── helpers.go        # template helper functions
 │   │   └── static/
 │   │       ├── css/
 │   │       └── js/
@@ -108,7 +120,8 @@ opswise/
 │       ├── cicd/
 │       └── vibe-coding/
 │
-├── docs/
+├── Makefile
+├── Dockerfile
 ├── SPEC.md
 ├── README.md
 └── LICENSE                       # Apache 2.0
@@ -206,19 +219,38 @@ POST /settings                  → save settings
 
 ---
 
+## Dashboard
+
+The dashboard (`GET /`) shows:
+- Hero section with terminal demo
+- Stats grid: host count, product count, deployment count (via CountHosts/CountProducts/CountDeployments queries)
+- Quick action cards linking to hosts, products, stacks, and deployments
+
+---
+
 ## Deployment Flow
 
 1. User selects a product or stack in the GUI
 2. User selects target host(s) from the host list
 3. User selects deployment mode: ansible / compose / helm
-4. User fills in optional config values (port, admin password, etc.)
+4. User fills in config values (auto-generated from product's `defaults.yml`)
 5. On submit → POST /products/:name/deploy
 6. Server creates a deployment record in DB (status: pending)
-7. Server spawns goroutine that executes ansible-playbook (or helm/compose)
-8. Output is streamed line by line to deployment log in DB
-9. Frontend polls /deployments/:id/log via HTMX SSE for live output
-10. On completion → status updated to success or failed
-11. If git push enabled → generated code committed and pushed to configured repo
+7. Server spawns goroutine via `DeployService.StartDeployment`
+8. `DeployService` manages subscriber channels for live log streaming
+9. Output is streamed line by line: written to DB log + broadcast to SSE subscribers
+10. Frontend connects to `/deployments/:id/log` via HTMX SSE extension for live output
+11. On completion → status updated to success or failed
+12. If git push enabled → generated code committed and pushed to configured repo
+
+### DeployService Architecture
+
+`DeployService` (internal/runner/deploy.go) is the central deployment orchestrator:
+- Maintains a map of `subscribers` (deployment ID → []chan string) for real-time log streaming
+- `StartDeployment` creates a DB record and launches a goroutine
+- `Subscribe/Unsubscribe` manage SSE client connections
+- `broadcast` fans out log lines to all subscribers of a deployment
+- On completion, closes all subscriber channels and cleans up
 
 ---
 
@@ -279,7 +311,12 @@ grafana_admin_password: "changeme"
 grafana_data_dir: /var/lib/grafana
 ```
 
-These variables are surfaced as form fields in the GUI automatically.
+These variables are surfaced as form fields in the GUI automatically:
+- `LoadProductDefaults(deployDir, productName)` in `internal/runner/defaults.go` parses the YAML
+- Variables are sorted alphabetically and rendered as input fields
+- The product prefix (e.g. `grafana_`) is stripped from labels for readability
+- Password fields (keys containing "password") use `<input type="password">`
+- Form field names are prefixed with `config_` to be collected as deployment config
 
 ---
 
@@ -289,10 +326,10 @@ Priority order:
 
 1. **Grafana** – ansible + compose + helm
 2. **Prometheus** – ansible + compose + helm
-3. **Loki** – ansible + compose
-4. **GitLab CE** – ansible + compose
-5. **Harbor** – compose + helm
-6. **Keycloak** – compose + helm
+3. **Loki** – ansible + compose + helm
+4. **GitLab CE** – ansible + compose + helm
+5. **Harbor** – ansible + compose + helm
+6. **Keycloak** – ansible + compose + helm
 7. **ArgoCD** – helm only
 
 ---

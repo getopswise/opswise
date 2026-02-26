@@ -17,3 +17,8 @@ UPDATE deployments SET log = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
 -- name: SetDeploymentGitPushed :exec
 UPDATE deployments SET git_pushed = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
+
+-- name: ListDeploymentsByHostID :many
+SELECT * FROM deployments
+WHERE host_ids LIKE '%' || ? || '%'
+ORDER BY created_at DESC;

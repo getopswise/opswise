@@ -14,12 +14,13 @@ import (
 )
 
 type ProductHandler struct {
-	q      *dbq.Queries
-	deploy *runner.DeployService
+	q         *dbq.Queries
+	deploy    *runner.DeployService
+	deployDir string
 }
 
-func NewProductHandler(q *dbq.Queries, deploy *runner.DeployService) *ProductHandler {
-	return &ProductHandler{q: q, deploy: deploy}
+func NewProductHandler(q *dbq.Queries, deploy *runner.DeployService, deployDir string) *ProductHandler {
+	return &ProductHandler{q: q, deploy: deploy, deployDir: deployDir}
 }
 
 func (h *ProductHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +49,9 @@ func (h *ProductHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	var modes []string
 	json.Unmarshal([]byte(product.Modes), &modes)
 
-	templates.ProductDetailPage(product, hosts, modes).Render(r.Context(), w)
+	defaults := runner.LoadProductDefaults(h.deployDir, name)
+
+	templates.ProductDetailPage(product, hosts, modes, defaults).Render(r.Context(), w)
 }
 
 func (h *ProductHandler) Deploy(w http.ResponseWriter, r *http.Request) {

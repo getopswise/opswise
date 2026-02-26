@@ -1,0 +1,67 @@
+package templates
+
+import "github.com/getopswise/opswise/app/internal/db/dbq"
+
+templ HostDetailPage(host dbq.Host, deployments []dbq.Deployment) {
+	@Layout(host.Name) {
+		<div class="page-header">
+			<h1>{ host.Name }</h1>
+			<a href="/hosts" class="btn">Back to Hosts</a>
+		</div>
+		<div class="detail-grid mb-3">
+			<div class="detail-item">
+				<span class="detail-label">IP Address</span>
+				<span class="text-mono">{ host.Ip }</span>
+			</div>
+			<div class="detail-item">
+				<span class="detail-label">SSH User</span>
+				<span>{ host.SshUser }</span>
+			</div>
+			<div class="detail-item">
+				<span class="detail-label">SSH Port</span>
+				<span>{ itoa(host.SshPort) }</span>
+			</div>
+			<div class="detail-item">
+				<span class="detail-label">SSH Key</span>
+				<span>{ nullStr(host.SshKey) }</span>
+			</div>
+			<div class="detail-item">
+				<span class="detail-label">Tags</span>
+				<span>{ nullStr(host.Tags) }</span>
+			</div>
+			<div class="detail-item">
+				<span class="detail-label">Created</span>
+				<span>{ nullTime(host.CreatedAt) }</span>
+			</div>
+		</div>
+		<h2>Deployments on this Host</h2>
+		if len(deployments) == 0 {
+			<div class="empty-state">
+				<p>No deployments have targeted this host yet.</p>
+			</div>
+		} else {
+			<table>
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Target</th>
+						<th>Mode</th>
+						<th>Status</th>
+						<th>Created</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, d := range deployments {
+						<tr>
+							<td><a href={ templ.SafeURL("/deployments/" + itoa(d.ID)) }>{ d.Name }</a></td>
+							<td>{ d.TargetName }</td>
+							<td><span class="chip">{ d.Mode }</span></td>
+							<td><span class={ "badge badge-" + d.Status }>{ d.Status }</span></td>
+							<td>{ nullTime(d.CreatedAt) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
+}

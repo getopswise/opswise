@@ -43,46 +43,46 @@ func Dashboard(hostCount, productCount, deploymentCount int64) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"hero\"><span class=\"hero-eyebrow\">Control Panel</span><h1>Welcome to Opswise Deploy</h1><p>Deploy DevOps infrastructure on your servers with a few clicks. Add hosts, pick products, and let Opswise handle the rest.</p></div><div class=\"stats-grid\"><div class=\"stat-card\"><div class=\"stat-value\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"hero\"><div class=\"hero-grid\"><div class=\"hero-content\"><span class=\"hero-eyebrow\">Control Panel</span><h1>Welcome to Opswise Deploy</h1><p>Deploy DevOps infrastructure on your servers with a few clicks. Add hosts, pick products, and let Opswise handle the rest.</p><a href=\"/products\" class=\"btn btn-primary\">Get Started</a></div><div class=\"terminal-demo\"><div class=\"terminal-titlebar\"><div class=\"terminal-dots\"><span></span> <span></span> <span></span></div><span class=\"terminal-title\">opswise deploy</span></div><div class=\"terminal-body\"><div class=\"terminal-line\"><span class=\"prompt\">$</span> <span class=\"cmd\">opswise deploy --product prometheus</span></div><div class=\"terminal-line\"><span class=\"status-dot status-dot--success\"></span> <span class=\"status-text status-text--success\">Connecting to host...</span></div><div class=\"terminal-line\"><span class=\"status-dot status-dot--success\"></span> <span class=\"status-text status-text--success\">Running pre-checks</span></div><div class=\"terminal-line\"><span class=\"status-dot status-dot--success\"></span> <span class=\"status-text status-text--success\">Installing packages</span></div><div class=\"terminal-line\"><span class=\"status-dot status-dot--running\"></span> <span class=\"status-text status-text--running\">Configuring services...</span></div><div class=\"terminal-line\"><span class=\"status-dot status-dot--pending\"></span> <span class=\"status-text\">Verifying deployment</span></div></div></div></div></div><div class=\"section-header\"><h2>Overview</h2><p>Your infrastructure at a glance</p></div><div class=\"stats-grid\"><div class=\"stat-card stat-card--hosts\"><div class=\"stat-icon\">&#9211;</div><div class=\"stat-value\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", hostCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/dashboard.templ`, Line: 14, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/dashboard.templ`, Line: 60, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"stat-label\">Hosts</div></div><div class=\"stat-card\"><div class=\"stat-value\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"stat-label\">Hosts</div></div><div class=\"stat-card stat-card--products\"><div class=\"stat-icon\">&#9634;</div><div class=\"stat-value\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", productCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/dashboard.templ`, Line: 18, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/dashboard.templ`, Line: 65, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><div class=\"stat-label\">Products</div></div><div class=\"stat-card\"><div class=\"stat-value\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><div class=\"stat-label\">Products</div></div><div class=\"stat-card stat-card--deployments\"><div class=\"stat-icon\">&#9889;</div><div class=\"stat-value\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", deploymentCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/dashboard.templ`, Line: 22, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/dashboard.templ`, Line: 70, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"stat-label\">Deployments</div></div></div><h2>Quick Actions</h2><div class=\"quick-actions\"><a href=\"/hosts\" class=\"quick-action\"><span class=\"quick-action-icon\">+</span> <span>Add Hosts</span></a> <a href=\"/products\" class=\"quick-action\"><span class=\"quick-action-icon\">&#9654;</span> <span>Deploy Products</span></a> <a href=\"/stacks\" class=\"quick-action\"><span class=\"quick-action-icon\">&#9733;</span> <span>View Stacks</span></a> <a href=\"/deployments\" class=\"quick-action\"><span class=\"quick-action-icon\">&#8942;</span> <span>Deployments</span></a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"stat-label\">Deployments</div></div></div><div class=\"section-header\"><h2>Quick Actions</h2><p>Common tasks to manage your infrastructure</p></div><div class=\"module-grid\"><a href=\"/hosts\" class=\"module-card module-card--teal\"><div class=\"module-icon\">&#9211;</div><h3>Add Hosts</h3><p>Register new servers and manage your infrastructure inventory</p></a> <a href=\"/products\" class=\"module-card module-card--blue\"><div class=\"module-icon\">&#9654;</div><h3>Deploy Products</h3><p>Pick from available products and deploy to your hosts</p></a> <a href=\"/stacks\" class=\"module-card module-card--violet\"><div class=\"module-icon\">&#9733;</div><h3>View Stacks</h3><p>Manage grouped product configurations for your environments</p></a> <a href=\"/deployments\" class=\"module-card module-card--amber\"><div class=\"module-icon\">&#9776;</div><h3>Deployments</h3><p>Track deployment history, logs, and rollback if needed</p></a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

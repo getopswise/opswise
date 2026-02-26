@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
 
@@ -49,6 +50,29 @@ func (h *HostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/hosts", http.StatusSeeOther)
+}
+
+func (h *HostHandler) Detail(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	host, err := h.q.GetHost(r.Context(), id)
+	if err != nil {
+		http.Error(w, "host not found", http.StatusNotFound)
+		return
+	}
+
+	// Find deployments that targeted this host
+	hostIDStr := sql.NullString{String: strconv.FormatInt(id, 10), Valid: true}
+	deployments, err := h.q.ListDeploymentsByHostID(r.Context(), hostIDStr)
+	if err != nil {
+		deployments = nil
+	}
+
+	templates.HostDetailPage(host, deployments).Render(r.Context(), w)
 }
 
 func (h *HostHandler) Delete(w http.ResponseWriter, r *http.Request) {

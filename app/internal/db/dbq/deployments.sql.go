@@ -118,6 +118,48 @@ func (q *Queries) ListDeployments(ctx context.Context) ([]Deployment, error) {
 	return items, nil
 }
 
+const listDeploymentsByHostID = `-- name: ListDeploymentsByHostID :many
+SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at FROM deployments
+WHERE host_ids LIKE '%' || ? || '%'
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListDeploymentsByHostID(ctx context.Context, dollar_1 sql.NullString) ([]Deployment, error) {
+	rows, err := q.db.QueryContext(ctx, listDeploymentsByHostID, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Deployment
+	for rows.Next() {
+		var i Deployment
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Type,
+			&i.TargetName,
+			&i.Mode,
+			&i.HostIds,
+			&i.Config,
+			&i.Status,
+			&i.Log,
+			&i.GitPushed,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setDeploymentGitPushed = `-- name: SetDeploymentGitPushed :exec
 UPDATE deployments SET git_pushed = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ?
 `

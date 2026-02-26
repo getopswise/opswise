@@ -52,7 +52,7 @@ templ HostsPage(hosts []dbq.Host) {
 				<tbody>
 					for _, h := range hosts {
 						<tr>
-							<td>{ h.Name }</td>
+							<td><a href={ templ.SafeURL("/hosts/" + itoa(h.ID)) }>{ h.Name }</a></td>
 							<td><span class="text-mono">{ h.Ip }</span></td>
 							<td>{ h.SshUser }</td>
 							<td>{ itoa(h.SshPort) }</td>

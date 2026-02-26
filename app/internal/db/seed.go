@@ -37,7 +37,7 @@ func seedProducts(ctx context.Context, q *dbq.Queries) {
 			Description: ns("Horizontally scalable log aggregation system by Grafana"),
 			Version:     ns("2.9.6"),
 			Icon:        ns("file-text"),
-			Modes:       `["ansible","compose"]`,
+			Modes:       `["ansible","compose","helm"]`,
 		},
 		{
 			Name:        "gitlab",
@@ -45,7 +45,7 @@ func seedProducts(ctx context.Context, q *dbq.Queries) {
 			Description: ns("Complete DevOps platform with git repository management, CI/CD, and more"),
 			Version:     ns("16.11.0"),
 			Icon:        ns("git-branch"),
-			Modes:       `["ansible","compose"]`,
+			Modes:       `["ansible","compose","helm"]`,
 		},
 		{
 			Name:        "harbor",

@@ -1,0 +1,71 @@
+# Helm values for gitlab/gitlab chart (GitLab CE)
+# Chart: https://docs.gitlab.com/charts/
+# Install: helm install gitlab gitlab/gitlab -f values.yaml
+
+global:
+  edition: ce
+  hosts:
+    domain: example.com
+    https: false
+  ingress:
+    configureCertmanager: false
+    enabled: false
+
+# Disable components we don't need
+certmanager:
+  install: false
+
+nginx-ingress:
+  enabled: false
+
+gitlab-runner:
+  install: false
+
+prometheus:
+  install: false
+
+# -- GitLab component configuration --
+
+gitlab:
+  webservice:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+
+  sidekiq:
+    replicas: 1
+
+  gitaly:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1
+        memory: 2Gi
+
+# -- Internal dependencies --
+
+postgresql:
+  install: true
+
+redis:
+  install: true
+
+minio:
+  install: true
+
+# -- Container Registry --
+
+registry:
+  enabled: true
+
+# -- Ingress stub (disabled by default) --
+
+ingress:
+  enabled: false

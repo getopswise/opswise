@@ -10,23 +10,46 @@ import (
 	"github.com/getopswise/opswise/app/internal/api"
 	"github.com/getopswise/opswise/app/internal/db"
 	"github.com/getopswise/opswise/app/internal/db/dbq"
+	"github.com/getopswise/opswise/app/internal/models"
 	"github.com/getopswise/opswise/app/internal/runner"
 	"github.com/getopswise/opswise/app/web/templates"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"gopkg.in/yaml.v3"
 )
 
-func main() {
-	dbPath := os.Getenv("OPSWISE_DB")
-	if dbPath == "" {
-		dbPath = "opswise.db"
+func loadConfig() models.AppConfig {
+	cfg := models.AppConfig{
+		DBPath:    "opswise.db",
+		Port:      ":8080",
+		DeployDir: filepath.Join("..", "deploy"),
 	}
 
-	deployDir := os.Getenv("OPSWISE_DEPLOY_DIR")
-	if deployDir == "" {
-		// Default: ../deploy relative to the working directory
-		deployDir = filepath.Join("..", "deploy")
+	// Load from config.yaml if it exists
+	data, err := os.ReadFile("config.yaml")
+	if err == nil {
+		yaml.Unmarshal(data, &cfg)
 	}
+
+	// Environment variables override config.yaml
+	if v := os.Getenv("OPSWISE_DB"); v != "" {
+		cfg.DBPath = v
+	}
+	if v := os.Getenv("OPSWISE_PORT"); v != "" {
+		cfg.Port = ":" + v
+	}
+	if v := os.Getenv("OPSWISE_DEPLOY_DIR"); v != "" {
+		cfg.DeployDir = v
+	}
+
+	return cfg
+}
+
+func main() {
+	cfg := loadConfig()
+
+	dbPath := cfg.DBPath
+	deployDir := cfg.DeployDir
 
 	database, err := db.Open(dbPath)
 	if err != nil {
@@ -42,7 +65,7 @@ func main() {
 	deploySvc := runner.NewDeployService(queries, deployDir)
 
 	hostHandler := api.NewHostHandler(queries)
-	productHandler := api.NewProductHandler(queries, deploySvc)
+	productHandler := api.NewProductHandler(queries, deploySvc, deployDir)
 	stackHandler := api.NewStackHandler(queries, deploySvc)
 	deploymentHandler := api.NewDeploymentHandler(queries, deploySvc)
 	settingsHandler := api.NewSettingsHandler(queries)
@@ -65,6 +88,7 @@ func main() {
 
 	// Hosts
 	r.Get("/hosts", hostHandler.List)
+	r.Get("/hosts/{id}", hostHandler.Detail)
 	r.Post("/hosts", hostHandler.Create)
 	r.Delete("/hosts/{id}", hostHandler.Delete)
 
@@ -87,7 +111,7 @@ func main() {
 	r.Get("/settings", settingsHandler.Page)
 	r.Post("/settings", settingsHandler.Save)
 
-	addr := ":8080"
+	addr := cfg.Port
 	log.Printf("Opswise Deploy starting on %s", addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatalf("server error: %v", err)
