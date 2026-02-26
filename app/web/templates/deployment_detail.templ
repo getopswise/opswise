@@ -1,0 +1,56 @@
+package templates
+
+import (
+	"github.com/getopswise/opswise/app/internal/db/dbq"
+)
+
+templ DeploymentDetailPage(dep dbq.Deployment) {
+	@Layout("Deployment #" + itoa(dep.ID)) {
+		<div class="page-header">
+			<h1>{ dep.Name }</h1>
+			<span class={ statusBadgeClass(dep.Status) }>{ dep.Status }</span>
+		</div>
+		<div class="detail-grid mb-3">
+			<div class="detail-item">
+				<span class="detail-label">Type</span>
+				<span class="chip">{ dep.Type }</span>
+			</div>
+			<div class="detail-item">
+				<span class="detail-label">Target</span>
+				<span>{ dep.TargetName }</span>
+			</div>
+			<div class="detail-item">
+				<span class="detail-label">Mode</span>
+				<span class="chip">{ dep.Mode }</span>
+			</div>
+			<div class="detail-item">
+				<span class="detail-label">Created</span>
+				<span class="text-muted">{ nullTime(dep.CreatedAt) }</span>
+			</div>
+		</div>
+		<h2>Log Output</h2>
+		if dep.Status == "pending" || dep.Status == "running" {
+			<div
+				id="log-output"
+				class="log-output"
+				hx-ext="sse"
+				sse-connect={ "/deployments/" + itoa(dep.ID) + "/log" }
+				sse-swap="message"
+				hx-swap="beforeend"
+			>
+				<div class="log-loading">Waiting for output...</div>
+			</div>
+		} else {
+			<div id="log-output" class="log-output">
+				if dep.Log.Valid {
+					{ dep.Log.String }
+				} else {
+					No log output available.
+				}
+			</div>
+		}
+		<div class="mt-2">
+			<a href="/deployments" class="btn">Back to Deployments</a>
+		</div>
+	}
+}

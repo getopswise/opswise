@@ -5,10 +5,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/getopswise/opswise/app/internal/api"
 	"github.com/getopswise/opswise/app/internal/db"
 	"github.com/getopswise/opswise/app/internal/db/dbq"
+	"github.com/getopswise/opswise/app/internal/runner"
 	"github.com/getopswise/opswise/app/web/templates"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,6 +20,12 @@ func main() {
 	dbPath := os.Getenv("OPSWISE_DB")
 	if dbPath == "" {
 		dbPath = "opswise.db"
+	}
+
+	deployDir := os.Getenv("OPSWISE_DEPLOY_DIR")
+	if deployDir == "" {
+		// Default: ../deploy relative to the working directory
+		deployDir = filepath.Join("..", "deploy")
 	}
 
 	database, err := db.Open(dbPath)
@@ -31,10 +39,12 @@ func main() {
 	// Seed products and stacks
 	db.Seed(context.Background(), queries)
 
+	deploySvc := runner.NewDeployService(queries, deployDir)
+
 	hostHandler := api.NewHostHandler(queries)
-	productHandler := api.NewProductHandler(queries)
-	stackHandler := api.NewStackHandler(queries)
-	deploymentHandler := api.NewDeploymentHandler(queries)
+	productHandler := api.NewProductHandler(queries, deploySvc)
+	stackHandler := api.NewStackHandler(queries, deploySvc)
+	deploymentHandler := api.NewDeploymentHandler(queries, deploySvc)
 	settingsHandler := api.NewSettingsHandler(queries)
 
 	r := chi.NewRouter()
@@ -60,12 +70,18 @@ func main() {
 
 	// Products
 	r.Get("/products", productHandler.List)
+	r.Get("/products/{name}", productHandler.Detail)
+	r.Post("/products/{name}/deploy", productHandler.Deploy)
 
 	// Stacks
 	r.Get("/stacks", stackHandler.List)
+	r.Get("/stacks/{name}", stackHandler.Detail)
+	r.Post("/stacks/{name}/deploy", stackHandler.Deploy)
 
 	// Deployments
 	r.Get("/deployments", deploymentHandler.List)
+	r.Get("/deployments/{id}", deploymentHandler.Detail)
+	r.Get("/deployments/{id}/log", deploymentHandler.LogStream)
 
 	// Settings
 	r.Get("/settings", settingsHandler.Page)

@@ -467,6 +467,66 @@ input::placeholder, textarea::placeholder {
     font-family: var(--font-mono);
 }
 
+/* === Checkbox Group === */
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    accent-color: var(--color-primary);
+}
+
+/* === Detail Grid === */
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 20px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary);
+}
+
+/* === Log Loading === */
+.log-loading {
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* === Utility === */
+.text-muted {
+    color: var(--color-text-secondary);
+}
+
+.text-mono {
+    font-family: var(--font-mono);
+}
+
 .mt-1 { margin-top: 8px; }
 .mt-2 { margin-top: 16px; }
 .mt-3 { margin-top: 24px; }

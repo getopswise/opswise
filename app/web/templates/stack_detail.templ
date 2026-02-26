@@ -1,0 +1,53 @@
+package templates
+
+import (
+	"github.com/getopswise/opswise/app/internal/db/dbq"
+)
+
+templ StackDetailPage(stack dbq.Stack, hosts []dbq.Host, productNames []string) {
+	@Layout(stack.DisplayName) {
+		<h1>{ stack.DisplayName }</h1>
+		<p class="text-muted mb-2">{ nullStr(stack.Description) }</p>
+		<div class="mb-3">
+			for _, p := range productNames {
+				<span class="chip">{ p }</span>
+			}
+		</div>
+		<div class="form-inline">
+			<h2>Deploy Stack</h2>
+			<form method="POST" action={ templ.SafeURL("/stacks/" + stack.Name + "/deploy") } hx-post={ "/stacks/" + stack.Name + "/deploy" }>
+				<div class="form-row">
+					<div class="form-group">
+						<label for="mode">Deployment Mode</label>
+						<select id="mode" name="mode" required>
+							<option value="ansible">ansible</option>
+							<option value="compose">compose</option>
+							<option value="helm">helm</option>
+						</select>
+					</div>
+				</div>
+				if len(hosts) > 0 {
+					<div class="form-group">
+						<label>Target Hosts</label>
+						<div class="checkbox-group">
+							for _, h := range hosts {
+								<label class="checkbox-label">
+									<input type="checkbox" name="host_ids" value={ itoa(h.ID) }/>
+									<span>{ h.Name } <span class="text-muted text-mono">({ h.Ip })</span></span>
+								</label>
+							}
+						</div>
+					</div>
+				} else {
+					<div class="form-group">
+						<p class="text-muted">No hosts configured. <a href="/hosts">Add hosts</a> first for Ansible deployments.</p>
+					</div>
+				}
+				<div class="form-actions">
+					<button type="submit" class="btn-primary">Deploy Stack</button>
+					<a href="/stacks" class="btn">Cancel</a>
+				</div>
+			</form>
+		</div>
+	}
+}
