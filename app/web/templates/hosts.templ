@@ -1,0 +1,40 @@
+package templates
+
+import "github.com/getopswise/opswise/app/internal/db/dbq"
+
+templ HostsPage(hosts []dbq.Host) {
+	@Layout("Hosts") {
+		<h1>Hosts</h1>
+		<table>
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>IP</th>
+					<th>SSH User</th>
+					<th>Port</th>
+					<th>Tags</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, h := range hosts {
+					<tr>
+						<td>{ h.Name }</td>
+						<td>{ h.Ip }</td>
+						<td>{ h.SshUser }</td>
+						<td>{ itoa(h.SshPort) }</td>
+						<td>{ nullStr(h.Tags) }</td>
+						<td>
+							<button
+								hx-delete={ "/hosts/" + itoa(h.ID) }
+								hx-confirm="Delete this host?"
+								hx-target="closest tr"
+								hx-swap="outerHTML"
+							>Delete</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

@@ -1,0 +1,18 @@
+package templates
+
+import "github.com/getopswise/opswise/app/internal/db/dbq"
+
+templ ProductsPage(products []dbq.Product) {
+	@Layout("Products") {
+		<h1>Products</h1>
+		<div class="product-list">
+			for _, p := range products {
+				<div class="product-card">
+					<h3>{ p.DisplayName }</h3>
+					<p>{ nullStr(p.Description) }</p>
+					<a href={ templ.SafeURL("/products/" + p.Name) }>View</a>
+				</div>
+			}
+		</div>
+	}
+}
