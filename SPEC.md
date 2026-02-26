@@ -274,6 +274,16 @@ func RunPlaybook(playbook string, inventory []string, extraVars map[string]strin
 
 Playbook path is resolved from `deploy/products/<name>/ansible/install.yml`.
 
+### SSH Credential Flow
+
+SSH key resolution follows a fallback chain (highest priority first):
+
+1. **Per-Host Key** – `hosts.ssh_key` set via the Add Host form
+2. **Global Key** – `ssh_key_path` setting from the Settings page
+3. **Ansible Default** – if neither is set, Ansible uses its own default key discovery
+
+The resolved key is passed as `ansible_ssh_private_key_file` in the inventory entry for each host.
+
 ---
 
 ## Stack Definition Format

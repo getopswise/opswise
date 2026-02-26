@@ -238,11 +238,17 @@ func (s *DeployService) runAnsible(params DeployParams, appendLog func(string)) 
 	playbook := PlaybookPath(s.deployDir, params.TargetName)
 	appendLog(fmt.Sprintf("Playbook: %s", playbook))
 
+	// Load global SSH key as fallback
+	globalSSHKey, _ := s.q.GetSetting(context.Background(), "ssh_key_path")
+
 	var inventory []string
 	for _, h := range params.Hosts {
 		entry := fmt.Sprintf("%s ansible_user=%s ansible_port=%d", h.Ip, h.SshUser, h.SshPort)
-		if h.SshKey.Valid && h.SshKey.String != "" {
+		switch {
+		case h.SshKey.Valid && h.SshKey.String != "":
 			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", h.SshKey.String)
+		case globalSSHKey != "":
+			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", globalSSHKey)
 		}
 		inventory = append(inventory, entry)
 	}

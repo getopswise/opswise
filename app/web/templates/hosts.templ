@@ -27,6 +27,14 @@ templ HostsPage(hosts []dbq.Host) {
 						<label for="ssh_port">SSH Port</label>
 						<input type="number" id="ssh_port" name="ssh_port" placeholder="22" value="22"/>
 					</div>
+					<div class="form-group">
+						<label for="ssh_key">SSH Key Path</label>
+						<input type="text" id="ssh_key" name="ssh_key" placeholder="~/.ssh/id_rsa"/>
+					</div>
+					<div class="form-group">
+						<label for="tags">Tags</label>
+						<input type="text" id="tags" name="tags" placeholder="web, production"/>
+					</div>
 				</div>
 				<div class="form-actions">
 					<button type="submit" class="btn-primary">Add Host</button>
@@ -45,6 +53,7 @@ templ HostsPage(hosts []dbq.Host) {
 						<th>IP</th>
 						<th>SSH User</th>
 						<th>Port</th>
+						<th>SSH Key</th>
 						<th>Tags</th>
 						<th>Actions</th>
 					</tr>
@@ -56,6 +65,7 @@ templ HostsPage(hosts []dbq.Host) {
 							<td><span class="text-mono">{ h.Ip }</span></td>
 							<td>{ h.SshUser }</td>
 							<td>{ itoa(h.SshPort) }</td>
+							<td>{ nullStr(h.SshKey) }</td>
 							<td>{ nullStr(h.Tags) }</td>
 							<td>
 								<button

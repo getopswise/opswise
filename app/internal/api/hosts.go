@@ -38,11 +38,16 @@ func (h *HostHandler) Create(w http.ResponseWriter, r *http.Request) {
 		port = 22
 	}
 
+	sshKey := r.FormValue("ssh_key")
+	tags := r.FormValue("tags")
+
 	_, err := h.q.CreateHost(r.Context(), dbq.CreateHostParams{
 		Name:    r.FormValue("name"),
 		Ip:      r.FormValue("ip"),
 		SshUser: r.FormValue("ssh_user"),
 		SshPort: port,
+		SshKey:  sql.NullString{String: sshKey, Valid: sshKey != ""},
+		Tags:    sql.NullString{String: tags, Valid: tags != ""},
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
