@@ -1,0 +1,10 @@
+*.db
+*.db-wal
+*.db-shm
+.git
+.claude
+observe
+ai
+docs
+SPEC.md
+CLAUDE.md

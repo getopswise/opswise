@@ -1,2 +1,115 @@
-# opswise
-Open source platform to deploy and manage DevOps infrastructure on bare metal, VMs, Docker and Kubernetes
+# Opswise Deploy
+
+Open source web application for deploying DevOps infrastructure on bare metal VMs — through a simple GUI, without requiring a DevOps team.
+
+Select a product (Grafana, Prometheus, GitLab, Harbor, etc.), pick your target hosts, choose a deployment mode (Ansible, Docker Compose, or Helm), and Opswise handles the rest.
+
+## Features
+
+- **Product catalog** — Grafana, Prometheus, Loki, GitLab CE, Harbor, Keycloak, ArgoCD
+- **Predefined stacks** — Monitoring, CI/CD, Vibe Coding
+- **Multiple deployment modes** — Ansible playbooks, Docker Compose, Helm charts
+- **Live deployment logs** — real-time streaming via SSE
+- **Host management** — register target VMs with SSH credentials
+- **Git integration** — push generated deployment code to your repository
+- **Single binary** — no external dependencies beyond the deployment tools themselves
+
+## Tech Stack
+
+- **Backend:** Go + [chi](https://github.com/go-chi/chi) + [Templ](https://templ.guide) + SQLite
+- **Frontend:** [HTMX](https://htmx.org) + plain CSS (no JavaScript frameworks, no Node.js)
+- **Database:** SQLite via [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) (pure Go, no CGO)
+
+## Quick Start
+
+### From source
+
+```bash
+# Install dependencies
+go install github.com/a-h/templ/cmd/templ@latest
+
+# Build
+cd app
+templ generate
+go build -o opswise ./cmd/
+
+# Run
+./opswise
+```
+
+The server starts on [http://localhost:8080](http://localhost:8080).
+
+### With Docker
+
+```bash
+docker build -t opswise .
+docker run -p 8080:8080 -v opswise-data:/app/data opswise
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `OPSWISE_DB` | `opswise.db` | Path to SQLite database file |
+| `OPSWISE_DEPLOY_DIR` | `../deploy` | Path to deploy directory with playbooks/compose/helm files |
+
+## Project Structure
+
+```
+opswise/
+├── app/                    # Go application
+│   ├── cmd/main.go         # Entrypoint
+│   ├── internal/
+│   │   ├── api/            # HTTP handlers
+│   │   ├── db/             # Database, migrations, sqlc queries
+│   │   ├── runner/         # Ansible, Compose, Helm executors
+│   │   └── git/            # Git push integration
+│   └── web/
+│       ├── templates/      # Templ templates
+│       └── static/         # CSS, JS (HTMX)
+├── deploy/
+│   ├── products/           # Per-product automation files
+│   │   ├── grafana/
+│   │   ├── prometheus/
+│   │   ├── loki/
+│   │   ├── gitlab/
+│   │   ├── harbor/
+│   │   ├── keycloak/
+│   │   └── argocd/
+│   └── stacks/             # Predefined product combinations
+├── Dockerfile
+└── SPEC.md
+```
+
+## Deployment Flow
+
+1. Select a product or stack
+2. Choose target hosts
+3. Pick deployment mode (Ansible / Compose / Helm)
+4. Configure settings (ports, passwords, etc.)
+5. Deploy — logs stream live to the browser
+6. Optionally push generated code to Git
+
+## Products
+
+| Product | Ansible | Compose | Helm |
+|---|---|---|---|
+| Grafana | yes | yes | yes |
+| Prometheus | yes | yes | yes |
+| Loki | yes | yes | — |
+| GitLab CE | yes | yes | — |
+| Harbor | — | yes | yes |
+| Keycloak | — | yes | yes |
+| ArgoCD | — | — | yes |
+
+## Stacks
+
+| Stack | Products |
+|---|---|
+| Monitoring | Prometheus, Grafana, Loki |
+| CI/CD | GitLab, Harbor |
+| Vibe Coding | GitLab, Harbor, Keycloak, ArgoCD |
+
+## License
+
+Apache 2.0
