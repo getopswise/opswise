@@ -4,37 +4,72 @@ import "github.com/getopswise/opswise/app/internal/db/dbq"
 
 templ HostsPage(hosts []dbq.Host) {
 	@Layout("Hosts") {
-		<h1>Hosts</h1>
-		<table>
-			<thead>
-				<tr>
-					<th>Name</th>
-					<th>IP</th>
-					<th>SSH User</th>
-					<th>Port</th>
-					<th>Tags</th>
-					<th>Actions</th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, h := range hosts {
+		<div class="page-header">
+			<h1>Hosts</h1>
+		</div>
+		<div class="form-inline">
+			<h2>Add Host</h2>
+			<form method="POST" action="/hosts">
+				<div class="form-row">
+					<div class="form-group">
+						<label for="name">Name</label>
+						<input type="text" id="name" name="name" placeholder="web-server-1" required/>
+					</div>
+					<div class="form-group">
+						<label for="ip">IP Address</label>
+						<input type="text" id="ip" name="ip" placeholder="192.168.1.100" required/>
+					</div>
+					<div class="form-group">
+						<label for="ssh_user">SSH User</label>
+						<input type="text" id="ssh_user" name="ssh_user" placeholder="root" value="root"/>
+					</div>
+					<div class="form-group">
+						<label for="ssh_port">SSH Port</label>
+						<input type="number" id="ssh_port" name="ssh_port" placeholder="22" value="22"/>
+					</div>
+				</div>
+				<div class="form-actions">
+					<button type="submit" class="btn-primary">Add Host</button>
+				</div>
+			</form>
+		</div>
+		if len(hosts) == 0 {
+			<div class="empty-state">
+				<p>No hosts configured yet.</p>
+			</div>
+		} else {
+			<table>
+				<thead>
 					<tr>
-						<td>{ h.Name }</td>
-						<td>{ h.Ip }</td>
-						<td>{ h.SshUser }</td>
-						<td>{ itoa(h.SshPort) }</td>
-						<td>{ nullStr(h.Tags) }</td>
-						<td>
-							<button
-								hx-delete={ "/hosts/" + itoa(h.ID) }
-								hx-confirm="Delete this host?"
-								hx-target="closest tr"
-								hx-swap="outerHTML"
-							>Delete</button>
-						</td>
+						<th>Name</th>
+						<th>IP</th>
+						<th>SSH User</th>
+						<th>Port</th>
+						<th>Tags</th>
+						<th>Actions</th>
 					</tr>
-				}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					for _, h := range hosts {
+						<tr>
+							<td>{ h.Name }</td>
+							<td><span class="text-mono">{ h.Ip }</span></td>
+							<td>{ h.SshUser }</td>
+							<td>{ itoa(h.SshPort) }</td>
+							<td>{ nullStr(h.Tags) }</td>
+							<td>
+								<button
+									class="btn-danger btn-sm"
+									hx-delete={ "/hosts/" + itoa(h.ID) }
+									hx-confirm="Delete this host?"
+									hx-target="closest tr"
+									hx-swap="outerHTML"
+								>Delete</button>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
 	}
 }

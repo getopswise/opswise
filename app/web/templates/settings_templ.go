@@ -41,7 +41,7 @@ func SettingsPage() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Settings</h1><p>Settings page coming soon.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Settings</h1><div class=\"form-inline\"><h2>Git Integration</h2><form method=\"POST\" action=\"/settings\"><div class=\"form-row\"><div class=\"form-group\"><label for=\"git_url\">Git Repository URL</label> <input type=\"text\" id=\"git_url\" name=\"git_url\" placeholder=\"https://github.com/org/repo.git\"></div><div class=\"form-group\"><label for=\"git_branch\">Branch</label> <input type=\"text\" id=\"git_branch\" name=\"git_branch\" placeholder=\"main\" value=\"main\"></div></div><div class=\"form-row\"><div class=\"form-group\"><label for=\"git_token\">Access Token</label> <input type=\"password\" id=\"git_token\" name=\"git_token\" placeholder=\"Token\"></div><div class=\"form-group\"><label for=\"ssh_key_path\">Default SSH Key Path</label> <input type=\"text\" id=\"ssh_key_path\" name=\"ssh_key_path\" placeholder=\"~/.ssh/id_rsa\"></div></div><div class=\"form-actions\"><button type=\"submit\" class=\"btn-primary\">Save Settings</button></div></form></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

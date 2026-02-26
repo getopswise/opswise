@@ -5,14 +5,20 @@ import "github.com/getopswise/opswise/app/internal/db/dbq"
 templ StacksPage(stacks []dbq.Stack) {
 	@Layout("Stacks") {
 		<h1>Stacks</h1>
-		<div class="stack-list">
-			for _, s := range stacks {
-				<div class="stack-card">
-					<h3>{ s.DisplayName }</h3>
-					<p>{ nullStr(s.Description) }</p>
-					<a href={ templ.SafeURL("/stacks/" + s.Name) }>View</a>
-				</div>
-			}
-		</div>
+		if len(stacks) == 0 {
+			<div class="empty-state">
+				<p>No stacks available yet.</p>
+			</div>
+		} else {
+			<div class="stack-list">
+				for _, s := range stacks {
+					<div class="stack-card">
+						<h3>{ s.DisplayName }</h3>
+						<p>{ nullStr(s.Description) }</p>
+						<a href={ templ.SafeURL("/stacks/" + s.Name) }>View &rarr;</a>
+					</div>
+				}
+			</div>
+		}
 	}
 }

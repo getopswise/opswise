@@ -1,8 +1,23 @@
 package templates
 
-templ Dashboard() {
+import "fmt"
+
+templ Dashboard(hostCount, productCount, deploymentCount int64) {
 	@Layout("Dashboard") {
 		<h1>Dashboard</h1>
-		<p>Welcome to Opswise Deploy.</p>
+		<div class="stats-grid">
+			<div class="stat-card">
+				<div class="stat-value">{ fmt.Sprintf("%d", hostCount) }</div>
+				<div class="stat-label">Hosts</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value">{ fmt.Sprintf("%d", productCount) }</div>
+				<div class="stat-label">Products</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value">{ fmt.Sprintf("%d", deploymentCount) }</div>
+				<div class="stat-label">Deployments</div>
+			</div>
+		</div>
 	}
 }

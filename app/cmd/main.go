@@ -43,7 +43,10 @@ func main() {
 
 	// Dashboard
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		templates.Dashboard().Render(r.Context(), w)
+		hostCount, _ := queries.CountHosts(r.Context())
+		productCount, _ := queries.CountProducts(r.Context())
+		deploymentCount, _ := queries.CountDeployments(r.Context())
+		templates.Dashboard(hostCount, productCount, deploymentCount).Render(r.Context(), w)
 	})
 
 	// Hosts

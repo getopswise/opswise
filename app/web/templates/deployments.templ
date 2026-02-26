@@ -2,32 +2,53 @@ package templates
 
 import "github.com/getopswise/opswise/app/internal/db/dbq"
 
+func statusBadgeClass(status string) string {
+	switch status {
+	case "pending":
+		return "badge badge-pending"
+	case "running":
+		return "badge badge-running"
+	case "success":
+		return "badge badge-success"
+	case "failed":
+		return "badge badge-failed"
+	default:
+		return "badge"
+	}
+}
+
 templ DeploymentsPage(deployments []dbq.Deployment) {
 	@Layout("Deployments") {
 		<h1>Deployments</h1>
-		<table>
-			<thead>
-				<tr>
-					<th>Name</th>
-					<th>Type</th>
-					<th>Target</th>
-					<th>Mode</th>
-					<th>Status</th>
-					<th>Created</th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, d := range deployments {
+		if len(deployments) == 0 {
+			<div class="empty-state">
+				<p>No deployments yet. Deploy a product or stack to get started.</p>
+			</div>
+		} else {
+			<table>
+				<thead>
 					<tr>
-						<td><a href={ templ.SafeURL("/deployments/" + itoa(d.ID)) }>{ d.Name }</a></td>
-						<td>{ d.Type }</td>
-						<td>{ d.TargetName }</td>
-						<td>{ d.Mode }</td>
-						<td>{ d.Status }</td>
-						<td>{ nullTime(d.CreatedAt) }</td>
+						<th>Name</th>
+						<th>Type</th>
+						<th>Target</th>
+						<th>Mode</th>
+						<th>Status</th>
+						<th>Created</th>
 					</tr>
-				}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					for _, d := range deployments {
+						<tr>
+							<td><a href={ templ.SafeURL("/deployments/" + itoa(d.ID)) }>{ d.Name }</a></td>
+							<td><span class="chip">{ d.Type }</span></td>
+							<td>{ d.TargetName }</td>
+							<td><span class="chip">{ d.Mode }</span></td>
+							<td><span class={ statusBadgeClass(d.Status) }>{ d.Status }</span></td>
+							<td class="text-muted">{ nullTime(d.CreatedAt) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
 	}
 }
