@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -39,8 +38,6 @@ func RunPlaybook(playbook string, inventory []string, extraVars map[string]strin
 		args = append(args, "--extra-vars", string(varsJSON))
 	}
 
-	log.Printf("[ansible] command: ansible-playbook %v", args)
-	log.Printf("[ansible] inventory:\n%s", invContent)
 	cmd := exec.Command("ansible-playbook", args...)
 	cmd.Env = append(os.Environ(), "ANSIBLE_NOCOLOR=1", "ANSIBLE_HOST_KEY_CHECKING=False")
 
