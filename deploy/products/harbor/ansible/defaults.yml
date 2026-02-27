@@ -3,9 +3,9 @@
 # These are surfaced as configurable form fields in the Opswise GUI.
 
 harbor_version:
-  - "2.15.0"
   - "2.14.2"
   - "2.13.4"
+  - "2.12.2"
 harbor_hostname: "harbor.example.com"
 harbor_port: 80
 harbor_https_port: 443
