@@ -78,7 +78,7 @@ func main() {
 	hostHandler := api.NewHostHandler(queries, masterKey)
 	productHandler := api.NewProductHandler(queries, deploySvc, deployDir)
 	stackHandler := api.NewStackHandler(queries, deploySvc)
-	deploymentHandler := api.NewDeploymentHandler(queries, deploySvc)
+	deploymentHandler := api.NewDeploymentHandler(queries, deploySvc, masterKey)
 	settingsHandler := api.NewSettingsHandler(queries)
 
 	r := chi.NewRouter()
@@ -119,6 +119,7 @@ func main() {
 	r.Get("/deployments", deploymentHandler.List)
 	r.Get("/deployments/{id}", deploymentHandler.Detail)
 	r.Get("/deployments/{id}/log", deploymentHandler.LogStream)
+	r.Get("/deployments/{id}/download", deploymentHandler.Download)
 	r.Post("/deployments/{id}/redeploy", deploymentHandler.Redeploy)
 
 	// Settings

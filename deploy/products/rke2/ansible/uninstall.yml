@@ -1,0 +1,17 @@
+---
+- name: Uninstall RKE2 (Kubernetes)
+  hosts: all
+  become: true
+  tasks:
+    - name: Run RKE2 uninstall script (server)
+      shell: /usr/local/bin/rke2-uninstall.sh
+      ignore_errors: true
+
+    - name: Run RKE2 uninstall script (agent)
+      shell: /usr/local/bin/rke2-agent-uninstall.sh
+      ignore_errors: true
+
+    - name: Remove kubectl symlink
+      file:
+        path: /usr/local/bin/kubectl
+        state: absent

@@ -24,6 +24,8 @@ type Deployment struct {
 	GuiUrl        sql.NullString
 	LoginUser     sql.NullString
 	LoginPassword sql.NullString
+	DownloadFile  sql.NullString
+	DownloadName  sql.NullString
 }
 
 type Host struct {

@@ -1,0 +1,19 @@
+# RKE2 (Kubernetes) default variables
+# These values are surfaced as form fields in the Opswise GUI.
+rke2_version:
+  - "v1.32.2+rke2r1"
+  - "v1.31.6+rke2r1"
+  - "v1.30.10+rke2r1"
+rke2_type:
+  - "server"
+  - "agent"
+rke2_cni:
+  - "canal"
+  - "cilium"
+  - "calico"
+  - "flannel"
+rke2_token: "changeme"
+_login_user: "admin"
+_login_password: "{rke2_token}"
+_download_file: "/etc/rancher/rke2/rke2.yaml"
+_download_name: "kubeconfig.yaml"

@@ -196,6 +196,15 @@ func (s *DeployService) runDeployment(id int64, params DeployParams) {
 					LoginPassword: sql.NullString{String: loginPass, Valid: loginPass != ""},
 				})
 			}
+			downloadFile := ResolveTemplate(meta.DownloadFile, hostIP, params.Config)
+			downloadName := ResolveTemplate(meta.DownloadName, hostIP, params.Config)
+			if downloadFile != "" {
+				s.q.UpdateDeploymentDownload(ctx, dbq.UpdateDeploymentDownloadParams{
+					ID:           id,
+					DownloadFile: sql.NullString{String: downloadFile, Valid: true},
+					DownloadName: sql.NullString{String: downloadName, Valid: downloadName != ""},
+				})
+			}
 		}
 		s.finishDeployment(ctx, id, "success", logBuf.String())
 		s.tryGitPush(ctx, id, params, appendLog)

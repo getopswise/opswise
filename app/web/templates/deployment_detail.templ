@@ -67,6 +67,18 @@ templ DeploymentDetailPage(dep dbq.Deployment) {
 				<a href={ templ.SafeURL(dep.GuiUrl.String) } target="_blank" class="btn-primary btn-sm">Open</a>
 			</div>
 		}
+		if dep.Status == "success" && dep.DownloadFile.Valid && dep.DownloadFile.String != "" {
+			<div class="download-box mt-2 mb-2">
+				<div class="download-icon">
+					<i data-lucide="download"></i>
+				</div>
+				<div class="download-info">
+					<span class="download-label">File Download</span>
+					<span class="download-filename">{ dep.DownloadName.String }</span>
+				</div>
+				<a href={ templ.SafeURL("/deployments/" + itoa(dep.ID) + "/download") } class="btn-primary btn-sm">Download</a>
+			</div>
+		}
 		if dep.Status == "success" && dep.LoginUser.Valid && dep.LoginUser.String != "" {
 			<div class="credentials-box mt-2 mb-2">
 				<div class="credentials-icon">

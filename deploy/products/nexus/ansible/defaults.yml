@@ -1,0 +1,13 @@
+# Nexus Repository Manager default variables
+# These values are surfaced as form fields in the Opswise GUI.
+nexus_version:
+  - "3.75.1-01"
+  - "3.74.0-05"
+  - "3.73.0-12"
+nexus_port: 8081
+nexus_data_dir: /opt/sonatype-work
+nexus_install_dir: /opt/nexus
+nexus_heap_size: 1024m
+_gui_url: "http://{host}:{nexus_port}"
+_login_user: "admin"
+_login_password: "see admin.password file in {nexus_data_dir}/nexus3/admin.password"

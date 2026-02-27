@@ -24,6 +24,9 @@ UPDATE deployments SET gui_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 -- name: UpdateDeploymentCredentials :exec
 UPDATE deployments SET login_user = ?, login_password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
+-- name: UpdateDeploymentDownload :exec
+UPDATE deployments SET download_file = ?, download_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
+
 -- name: ListDeploymentsByHostID :many
 SELECT * FROM deployments
 WHERE host_ids LIKE '%' || ? || '%'

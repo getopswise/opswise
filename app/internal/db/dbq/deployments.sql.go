@@ -13,7 +13,7 @@ import (
 const createDeployment = `-- name: CreateDeployment :one
 INSERT INTO deployments (name, type, target_name, mode, host_ids, config, status)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url, login_user, login_password
+RETURNING id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url, login_user, login_password, download_file, download_name
 `
 
 type CreateDeploymentParams struct {
@@ -53,12 +53,14 @@ func (q *Queries) CreateDeployment(ctx context.Context, arg CreateDeploymentPara
 		&i.GuiUrl,
 		&i.LoginUser,
 		&i.LoginPassword,
+		&i.DownloadFile,
+		&i.DownloadName,
 	)
 	return i, err
 }
 
 const getDeployment = `-- name: GetDeployment :one
-SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url, login_user, login_password FROM deployments WHERE id = ? LIMIT 1
+SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url, login_user, login_password, download_file, download_name FROM deployments WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetDeployment(ctx context.Context, id int64) (Deployment, error) {
@@ -80,12 +82,14 @@ func (q *Queries) GetDeployment(ctx context.Context, id int64) (Deployment, erro
 		&i.GuiUrl,
 		&i.LoginUser,
 		&i.LoginPassword,
+		&i.DownloadFile,
+		&i.DownloadName,
 	)
 	return i, err
 }
 
 const listDeployments = `-- name: ListDeployments :many
-SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url, login_user, login_password FROM deployments ORDER BY created_at DESC
+SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url, login_user, login_password, download_file, download_name FROM deployments ORDER BY created_at DESC
 `
 
 func (q *Queries) ListDeployments(ctx context.Context) ([]Deployment, error) {
@@ -113,6 +117,8 @@ func (q *Queries) ListDeployments(ctx context.Context) ([]Deployment, error) {
 			&i.GuiUrl,
 			&i.LoginUser,
 			&i.LoginPassword,
+			&i.DownloadFile,
+			&i.DownloadName,
 		); err != nil {
 			return nil, err
 		}
@@ -128,7 +134,7 @@ func (q *Queries) ListDeployments(ctx context.Context) ([]Deployment, error) {
 }
 
 const listDeploymentsByHostID = `-- name: ListDeploymentsByHostID :many
-SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url, login_user, login_password FROM deployments
+SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url, login_user, login_password, download_file, download_name FROM deployments
 WHERE host_ids LIKE '%' || ? || '%'
 ORDER BY created_at DESC
 `
@@ -158,6 +164,8 @@ func (q *Queries) ListDeploymentsByHostID(ctx context.Context, dollar_1 sql.Null
 			&i.GuiUrl,
 			&i.LoginUser,
 			&i.LoginPassword,
+			&i.DownloadFile,
+			&i.DownloadName,
 		); err != nil {
 			return nil, err
 		}
@@ -193,6 +201,21 @@ type UpdateDeploymentCredentialsParams struct {
 
 func (q *Queries) UpdateDeploymentCredentials(ctx context.Context, arg UpdateDeploymentCredentialsParams) error {
 	_, err := q.db.ExecContext(ctx, updateDeploymentCredentials, arg.LoginUser, arg.LoginPassword, arg.ID)
+	return err
+}
+
+const updateDeploymentDownload = `-- name: UpdateDeploymentDownload :exec
+UPDATE deployments SET download_file = ?, download_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+`
+
+type UpdateDeploymentDownloadParams struct {
+	DownloadFile sql.NullString
+	DownloadName sql.NullString
+	ID           int64
+}
+
+func (q *Queries) UpdateDeploymentDownload(ctx context.Context, arg UpdateDeploymentDownloadParams) error {
+	_, err := q.db.ExecContext(ctx, updateDeploymentDownload, arg.DownloadFile, arg.DownloadName, arg.ID)
 	return err
 }
 

@@ -72,6 +72,22 @@ func seedProducts(ctx context.Context, q *dbq.Queries) {
 			Modes:       `["ansible"]`,
 		},
 		{
+			Name:        "rke2",
+			DisplayName: "Kubernetes (RKE2)",
+			Description: ns("Rancher Kubernetes Engine 2 - CNCF-certified Kubernetes distribution"),
+			Version:     ns("1.32.2"),
+			Icon:        ns("server"),
+			Modes:       `["ansible"]`,
+		},
+		{
+			Name:        "nexus",
+			DisplayName: "Nexus Repository",
+			Description: ns("Sonatype Nexus Repository Manager OSS — artifact and package repository"),
+			Version:     ns("3.75.1"),
+			Icon:        ns("archive"),
+			Modes:       `["ansible"]`,
+		},
+		{
 			Name:        "argocd",
 			DisplayName: "ArgoCD",
 			Description: ns("Declarative GitOps continuous delivery tool for Kubernetes"),

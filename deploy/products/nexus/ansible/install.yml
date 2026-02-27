@@ -1,0 +1,164 @@
+---
+- name: Install Nexus Repository Manager
+  hosts: all
+  become: true
+  vars:
+    nexus_version: "3.75.1-01"
+    nexus_port: 8081
+    nexus_data_dir: /opt/sonatype-work
+    nexus_install_dir: /opt/nexus
+    nexus_heap_size: 1024m
+  tasks:
+    - name: Install Java 17
+      apt:
+        name: openjdk-17-jre-headless
+        state: present
+        update_cache: true
+
+    - name: Create nexus system user
+      user:
+        name: nexus
+        system: true
+        shell: /usr/sbin/nologin
+        home: "{{ nexus_install_dir }}"
+        create_home: false
+
+    - name: Create install and data directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: nexus
+        group: nexus
+        mode: "0755"
+      loop:
+        - "{{ nexus_install_dir }}"
+        - "{{ nexus_data_dir }}"
+
+    - name: Download Nexus tar.gz
+      get_url:
+        url: "https://download.sonatype.com/nexus/3/nexus-{{ nexus_version }}-unix.tar.gz"
+        dest: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+        mode: "0644"
+
+    - name: Extract Nexus
+      unarchive:
+        src: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+        dest: "{{ nexus_install_dir }}"
+        remote_src: true
+        extra_opts:
+          - --strip-components=1
+        creates: "{{ nexus_install_dir }}/bin/nexus"
+
+    - name: Extract sonatype-work from archive
+      unarchive:
+        src: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+        dest: "{{ nexus_data_dir }}"
+        remote_src: true
+        extra_opts:
+          - --strip-components=1
+          - --wildcards
+          - "sonatype-work/*"
+      ignore_errors: true
+
+    - name: Set ownership of install directory
+      file:
+        path: "{{ nexus_install_dir }}"
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: true
+
+    - name: Set ownership of data directory
+      file:
+        path: "{{ nexus_data_dir }}"
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: true
+
+    - name: Configure JVM heap in nexus.vmoptions
+      lineinfile:
+        path: "{{ nexus_install_dir }}/bin/nexus.vmoptions"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^-Xms', line: '-Xms{{ nexus_heap_size }}' }
+        - { regexp: '^-Xmx', line: '-Xmx{{ nexus_heap_size }}' }
+        - { regexp: '^-XX:MaxDirectMemorySize', line: '-XX:MaxDirectMemorySize={{ nexus_heap_size }}' }
+        - { regexp: '^-Dkaraf.data=', line: '-Dkaraf.data={{ nexus_data_dir }}/nexus3' }
+        - { regexp: '^-Djava.io.tmpdir=', line: '-Djava.io.tmpdir={{ nexus_data_dir }}/nexus3/tmp' }
+      notify: Restart nexus
+
+    - name: Ensure nexus3 data subdirectory exists
+      file:
+        path: "{{ nexus_data_dir }}/nexus3/etc"
+        state: directory
+        owner: nexus
+        group: nexus
+        mode: "0755"
+
+    - name: Configure Nexus port
+      copy:
+        dest: "{{ nexus_data_dir }}/nexus3/etc/nexus.properties"
+        content: |
+          # Managed by Opswise Deploy
+          application-port={{ nexus_port }}
+          application-host=0.0.0.0
+          nexus-args=${jetty.etc}/jetty.xml,${jetty.etc}/jetty-http.xml,${jetty.etc}/jetty-requestlog.xml
+          nexus-context-path=/
+        owner: nexus
+        group: nexus
+        mode: "0644"
+      notify: Restart nexus
+
+    - name: Set run-as user
+      lineinfile:
+        path: "{{ nexus_install_dir }}/bin/nexus.rc"
+        regexp: '^#?run_as_user='
+        line: 'run_as_user="nexus"'
+        create: true
+
+    - name: Create systemd service for Nexus
+      copy:
+        dest: /etc/systemd/system/nexus.service
+        content: |
+          [Unit]
+          Description=Sonatype Nexus Repository Manager
+          After=network.target
+
+          [Service]
+          Type=forking
+          LimitNOFILE=65536
+          User=nexus
+          Group=nexus
+          ExecStart={{ nexus_install_dir }}/bin/nexus start
+          ExecStop={{ nexus_install_dir }}/bin/nexus stop
+          Restart=on-failure
+          RestartSec=10
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+      notify: Restart nexus
+
+    - name: Enable and start Nexus service
+      systemd:
+        name: nexus
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Wait for Nexus to be available
+      uri:
+        url: "http://localhost:{{ nexus_port }}"
+        status_code: 200
+      register: nexus_health
+      retries: 30
+      delay: 10
+      until: nexus_health.status == 200
+
+  handlers:
+    - name: Restart nexus
+      systemd:
+        name: nexus
+        state: restarted

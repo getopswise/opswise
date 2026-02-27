@@ -1,26 +1,33 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/getopswise/opswise/app/internal/crypto"
 	"github.com/getopswise/opswise/app/internal/db/dbq"
 	"github.com/getopswise/opswise/app/internal/runner"
 	"github.com/getopswise/opswise/app/web/templates"
 	"github.com/go-chi/chi/v5"
+	"golang.org/x/crypto/ssh"
 )
 
 type DeploymentHandler struct {
-	q      *dbq.Queries
-	deploy *runner.DeployService
+	q         *dbq.Queries
+	deploy    *runner.DeployService
+	masterKey []byte
 }
 
-func NewDeploymentHandler(q *dbq.Queries, deploy *runner.DeployService) *DeploymentHandler {
-	return &DeploymentHandler{q: q, deploy: deploy}
+func NewDeploymentHandler(q *dbq.Queries, deploy *runner.DeployService, masterKey []byte) *DeploymentHandler {
+	return &DeploymentHandler{q: q, deploy: deploy, masterKey: masterKey}
 }
 
 func (h *DeploymentHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -165,4 +172,130 @@ func (h *DeploymentHandler) Redeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/deployments/%d", newID), http.StatusSeeOther)
+}
+
+// Download fetches a file from the remote host via SSH and serves it as a download.
+func (h *DeploymentHandler) Download(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	dep, err := h.q.GetDeployment(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Deployment not found", http.StatusNotFound)
+		return
+	}
+
+	if dep.Status != "success" {
+		http.Error(w, "Deployment not successful", http.StatusBadRequest)
+		return
+	}
+
+	if !dep.DownloadFile.Valid || dep.DownloadFile.String == "" {
+		http.Error(w, "No download file configured", http.StatusNotFound)
+		return
+	}
+
+	// Resolve host from deployment
+	var hostIDs []int64
+	json.Unmarshal([]byte(dep.HostIds), &hostIDs)
+	if len(hostIDs) == 0 {
+		http.Error(w, "No hosts found for deployment", http.StatusBadRequest)
+		return
+	}
+
+	host, err := h.q.GetHost(r.Context(), hostIDs[0])
+	if err != nil {
+		http.Error(w, "Host not found", http.StatusNotFound)
+		return
+	}
+
+	// Build SSH client config
+	var authMethods []ssh.AuthMethod
+
+	// Try per-host encrypted key
+	if host.SshKey.Valid && host.SshKey.String != "" {
+		keyData, err := crypto.Decrypt(host.SshKey.String, h.masterKey)
+		if err != nil {
+			log.Printf("download: failed to decrypt SSH key for host %s: %v", host.Name, err)
+		} else {
+			signer, err := ssh.ParsePrivateKey(keyData)
+			if err == nil {
+				authMethods = append(authMethods, ssh.PublicKeys(signer))
+			}
+		}
+	}
+
+	// Try global key
+	globalSSHKey, _ := h.q.GetSetting(r.Context(), "ssh_key_path")
+	if globalSSHKey != "" {
+		if result, _ := loadKeyFile(globalSSHKey); result != nil {
+			authMethods = append(authMethods, result)
+		}
+	}
+
+	if len(authMethods) == 0 {
+		http.Error(w, "No SSH authentication method available", http.StatusInternalServerError)
+		return
+	}
+
+	sshConfig := &ssh.ClientConfig{
+		User:            host.SshUser,
+		Auth:            authMethods,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         10 * time.Second,
+	}
+
+	addr := fmt.Sprintf("%s:%d", host.Ip, host.SshPort)
+	client, err := ssh.Dial("tcp", addr, sshConfig)
+	if err != nil {
+		http.Error(w, "SSH connection failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		http.Error(w, "SSH session failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer session.Close()
+
+	var buf bytes.Buffer
+	session.Stdout = &buf
+	if err := session.Run("cat " + dep.DownloadFile.String); err != nil {
+		http.Error(w, "Failed to read remote file: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	content := buf.String()
+
+	// For kubeconfig files, replace 127.0.0.1 with the host's actual IP
+	if strings.Contains(dep.DownloadFile.String, "kubeconfig") || strings.Contains(dep.DownloadFile.String, "rke2.yaml") {
+		content = strings.ReplaceAll(content, "127.0.0.1", host.Ip)
+	}
+
+	filename := "download"
+	if dep.DownloadName.Valid && dep.DownloadName.String != "" {
+		filename = dep.DownloadName.String
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.Write([]byte(content))
+}
+
+// loadKeyFile reads an SSH private key file and returns an AuthMethod.
+func loadKeyFile(path string) (ssh.AuthMethod, error) {
+	keyData, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	signer, err := ssh.ParsePrivateKey(keyData)
+	if err != nil {
+		return nil, err
+	}
+	return ssh.PublicKeys(signer), nil
 }

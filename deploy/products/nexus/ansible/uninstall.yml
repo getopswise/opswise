@@ -1,0 +1,39 @@
+---
+- name: Uninstall Nexus Repository Manager
+  hosts: all
+  become: true
+  vars:
+    nexus_data_dir: /opt/sonatype-work
+    nexus_install_dir: /opt/nexus
+  tasks:
+    - name: Stop and disable Nexus service
+      systemd:
+        name: nexus
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove systemd service file
+      file:
+        path: /etc/systemd/system/nexus.service
+        state: absent
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: true
+
+    - name: Remove Nexus install directory
+      file:
+        path: "{{ nexus_install_dir }}"
+        state: absent
+
+    - name: Remove Nexus data directory
+      file:
+        path: "{{ nexus_data_dir }}"
+        state: absent
+
+    - name: Remove nexus user
+      user:
+        name: nexus
+        state: absent
+        remove: true

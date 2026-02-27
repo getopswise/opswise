@@ -60,6 +60,8 @@ type ProductMeta struct {
 	GUIURL        string // _gui_url template
 	LoginUser     string // _login_user template
 	LoginPassword string // _login_password template
+	DownloadFile  string // _download_file — remote path to fetch
+	DownloadName  string // _download_name — filename for download
 }
 
 // LoadProductMeta reads the internal _-prefixed keys from a product's defaults.yml.
@@ -84,6 +86,12 @@ func LoadProductMeta(deployDir, productName string) ProductMeta {
 	}
 	if v, ok := raw["_login_password"]; ok {
 		meta.LoginPassword = fmt.Sprintf("%v", v)
+	}
+	if v, ok := raw["_download_file"]; ok {
+		meta.DownloadFile = fmt.Sprintf("%v", v)
+	}
+	if v, ok := raw["_download_name"]; ok {
+		meta.DownloadName = fmt.Sprintf("%v", v)
 	}
 	return meta
 }
