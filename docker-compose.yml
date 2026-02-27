@@ -1,0 +1,23 @@
+services:
+  opswise:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - opswise-data:/app/data
+      - opswise-config:/etc/opswise
+    environment:
+      - OPSWISE_DB=/app/data/opswise.db
+      - OPSWISE_DEPLOY_DIR=/app/deploy
+      - OPSWISE_MASTER_KEY_PATH=/etc/opswise/master.key
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  opswise-data:
+  opswise-config:

@@ -1,0 +1,19 @@
+Opswise Deploy has been installed!
+
+To access the application:
+
+{{- if eq .Values.service.type "ClusterIP" }}
+  kubectl port-forward svc/{{ include "opswise.fullname" . }} 8080:{{ .Values.service.port }}
+
+Then open http://localhost:8080 in your browser.
+{{- else if eq .Values.service.type "NodePort" }}
+  export NODE_PORT=$(kubectl get svc {{ include "opswise.fullname" . }} -o jsonpath='{.spec.ports[0].nodePort}')
+  export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
+  echo "http://$NODE_IP:$NODE_PORT"
+{{- else if eq .Values.service.type "LoadBalancer" }}
+  kubectl get svc {{ include "opswise.fullname" . }} -w
+
+Once the EXTERNAL-IP is assigned, open http://<EXTERNAL-IP>:{{ .Values.service.port }}
+{{- end }}
+
+NOTE: SQLite does not support concurrent writers. Do not scale beyond 1 replica.

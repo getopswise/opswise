@@ -1,0 +1,41 @@
+replicaCount: 1
+
+image:
+  repository: opswise
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+
+masterKey:
+  # Create a Kubernetes Secret with the master key.
+  # Set create=true and provide the key value, or set existingSecret
+  # to reference a pre-existing Secret.
+  create: false
+  value: ""
+  existingSecret: ""
+
+env:
+  OPSWISE_DB: /app/data/opswise.db
+  OPSWISE_DEPLOY_DIR: /app/deploy
+  OPSWISE_MASTER_KEY_PATH: /etc/opswise/master.key
+
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
