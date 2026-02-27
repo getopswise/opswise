@@ -1054,6 +1054,31 @@ input::placeholder, textarea::placeholder {
     color: var(--color-text-secondary);
 }
 
+/* === Host Role List === */
+.host-role-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.host-role-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.host-role-name {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+    min-width: 0;
+}
+
+.host-role-item select {
+    width: 260px;
+    flex-shrink: 0;
+}
+
 /* === Responsive === */
 @media (max-width: 768px) {
     .hero-grid {

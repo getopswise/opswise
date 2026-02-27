@@ -152,6 +152,23 @@ func (h *DeploymentHandler) Redeploy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Reconstruct host groups from config if available
+	var hostGroups map[string][]dbq.Host
+	if groupMapJSON, ok := config["_host_groups_map"]; ok {
+		var groupMap map[string][]int64
+		if json.Unmarshal([]byte(groupMapJSON), &groupMap) == nil {
+			hostGroups = make(map[string][]dbq.Host)
+			for groupName, ids := range groupMap {
+				for _, id := range ids {
+					host, err := h.q.GetHost(r.Context(), id)
+					if err == nil {
+						hostGroups[groupName] = append(hostGroups[groupName], host)
+					}
+				}
+			}
+		}
+	}
+
 	newID, err := h.deploy.StartDeployment(r.Context(), runner.DeployParams{
 		Name:       dep.Name,
 		Type:       dep.Type,
@@ -160,6 +177,7 @@ func (h *DeploymentHandler) Redeploy(w http.ResponseWriter, r *http.Request) {
 		HostIDs:    hostIDs,
 		Config:     config,
 		Hosts:      hosts,
+		HostGroups: hostGroups,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -206,7 +224,23 @@ func (h *DeploymentHandler) Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	host, err := h.q.GetHost(r.Context(), hostIDs[0])
+	// Determine which host to download from: prefer first master if groups exist
+	targetHostID := hostIDs[0]
+	if dep.Config.Valid {
+		var config map[string]string
+		if json.Unmarshal([]byte(dep.Config.String), &config) == nil {
+			if groupMapJSON, ok := config["_host_groups_map"]; ok {
+				var groupMap map[string][]int64
+				if json.Unmarshal([]byte(groupMapJSON), &groupMap) == nil {
+					if masters, ok := groupMap["masters"]; ok && len(masters) > 0 {
+						targetHostID = masters[0]
+					}
+				}
+			}
+		}
+	}
+
+	host, err := h.q.GetHost(r.Context(), targetHostID)
 	if err != nil {
 		http.Error(w, "Host not found", http.StatusNotFound)
 		return

@@ -120,6 +120,7 @@ type DeployParams struct {
 	HostIDs    []int64
 	Config     map[string]string
 	Hosts      []dbq.Host // resolved host objects
+	HostGroups map[string][]dbq.Host // group name -> hosts (e.g. "masters" -> [...])
 }
 
 func (s *DeployService) runDeployment(id int64, params DeployParams) {
@@ -181,6 +182,10 @@ func (s *DeployService) runDeployment(id int64, params DeployParams) {
 		meta := LoadProductMeta(s.deployDir, params.TargetName)
 		if len(params.Hosts) > 0 {
 			hostIP := params.Hosts[0].Ip
+			// Prefer first master IP when host groups are used
+			if masters, ok := params.HostGroups["masters"]; ok && len(masters) > 0 {
+				hostIP = masters[0].Ip
+			}
 			if guiURL := ResolveTemplate(meta.GUIURL, hostIP, params.Config); guiURL != "" {
 				s.q.UpdateDeploymentGUIURL(ctx, dbq.UpdateDeploymentGUIURLParams{
 					ID:     id,
@@ -278,14 +283,44 @@ func (s *DeployService) tryGitPush(ctx context.Context, id int64, params DeployP
 	}
 }
 
+// buildInventoryEntry builds an Ansible inventory line for a single host,
+// handling SSH key decryption and temp file creation.
+func (s *DeployService) buildInventoryEntry(h dbq.Host, globalSSHKey string, tmpFiles *[]string, appendLog func(string)) string {
+	entry := fmt.Sprintf("%s ansible_user=%s ansible_port=%d", h.Ip, h.SshUser, h.SshPort)
+	if h.SshKey.Valid && h.SshKey.String != "" {
+		keyData, err := crypto.Decrypt(h.SshKey.String, s.masterKey)
+		if err != nil {
+			log.Printf("failed to decrypt SSH key for host %s: %v", h.Name, err)
+		} else {
+			tmpFile, err := os.CreateTemp("", "opswise-ssh-*")
+			if err != nil {
+				log.Printf("failed to create temp key file for host %s: %v", h.Name, err)
+			} else {
+				if _, err := tmpFile.Write(keyData); err != nil {
+					tmpFile.Close()
+					os.Remove(tmpFile.Name())
+					log.Printf("failed to write temp key file for host %s: %v", h.Name, err)
+				} else {
+					tmpFile.Close()
+					os.Chmod(tmpFile.Name(), 0600)
+					*tmpFiles = append(*tmpFiles, tmpFile.Name())
+					entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", tmpFile.Name())
+					appendLog(fmt.Sprintf("Host %s: using encrypted SSH key", h.Name))
+				}
+			}
+		}
+	} else if globalSSHKey != "" {
+		entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", globalSSHKey)
+	}
+	return entry
+}
+
 func (s *DeployService) runAnsible(params DeployParams, appendLog func(string)) (io.Reader, <-chan Result, error) {
 	playbook := PlaybookPath(s.deployDir, params.TargetName)
 	appendLog(fmt.Sprintf("Playbook: %s", playbook))
 
-	// Load global SSH key as fallback
 	globalSSHKey, _ := s.q.GetSetting(context.Background(), "ssh_key_path")
 
-	// Track temp files for cleanup
 	var tmpFiles []string
 	cleanup := func() {
 		for _, f := range tmpFiles {
@@ -293,47 +328,43 @@ func (s *DeployService) runAnsible(params DeployParams, appendLog func(string)) 
 		}
 	}
 
-	var inventory []string
-	for _, h := range params.Hosts {
-		entry := fmt.Sprintf("%s ansible_user=%s ansible_port=%d", h.Ip, h.SshUser, h.SshPort)
-		if h.SshKey.Valid && h.SshKey.String != "" {
-			// Decrypt key content and write to temp file
-			keyData, err := crypto.Decrypt(h.SshKey.String, s.masterKey)
-			if err != nil {
-				log.Printf("failed to decrypt SSH key for host %s: %v", h.Name, err)
-			} else {
-				tmpFile, err := os.CreateTemp("", "opswise-ssh-*")
-				if err != nil {
-					log.Printf("failed to create temp key file for host %s: %v", h.Name, err)
-				} else {
-					if _, err := tmpFile.Write(keyData); err != nil {
-						tmpFile.Close()
-						os.Remove(tmpFile.Name())
-						log.Printf("failed to write temp key file for host %s: %v", h.Name, err)
-					} else {
-						tmpFile.Close()
-						os.Chmod(tmpFile.Name(), 0600)
-						tmpFiles = append(tmpFiles, tmpFile.Name())
-						entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", tmpFile.Name())
-						appendLog(fmt.Sprintf("Host %s: using encrypted SSH key", h.Name))
-					}
-				}
-			}
-		} else if globalSSHKey != "" {
-			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", globalSSHKey)
-		}
-		inventory = append(inventory, entry)
-	}
-	appendLog(fmt.Sprintf("Inventory: %s", strings.Join(inventory, ", ")))
-	appendLog("")
+	var reader io.Reader
+	var done <-chan Result
+	var err error
 
-	reader, done, err := RunPlaybook(playbook, inventory, params.Config)
+	if len(params.HostGroups) > 0 {
+		// Build grouped inventory
+		groups := make(InventoryGroups)
+		for groupName, hosts := range params.HostGroups {
+			for _, h := range hosts {
+				entry := s.buildInventoryEntry(h, globalSSHKey, &tmpFiles, appendLog)
+				groups[groupName] = append(groups[groupName], entry)
+			}
+		}
+		for groupName, entries := range groups {
+			appendLog(fmt.Sprintf("Group [%s]: %s", groupName, strings.Join(entries, ", ")))
+		}
+		appendLog("")
+
+		reader, done, err = RunPlaybookWithGroups(playbook, groups, params.Config)
+	} else {
+		// Legacy flat inventory
+		var inventory []string
+		for _, h := range params.Hosts {
+			entry := s.buildInventoryEntry(h, globalSSHKey, &tmpFiles, appendLog)
+			inventory = append(inventory, entry)
+		}
+		appendLog(fmt.Sprintf("Inventory: %s", strings.Join(inventory, ", ")))
+		appendLog("")
+
+		reader, done, err = RunPlaybook(playbook, inventory, params.Config)
+	}
+
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
 
-	// Wrap the done channel to clean up temp files after completion
 	wrappedDone := make(chan Result, 1)
 	go func() {
 		result := <-done

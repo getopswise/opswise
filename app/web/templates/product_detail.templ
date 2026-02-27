@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-templ ProductDetailPage(product dbq.Product, hosts []dbq.Host, modes []string, defaults []runner.DefaultVar) {
+templ ProductDetailPage(product dbq.Product, hosts []dbq.Host, modes []string, defaults []runner.DefaultVar, hostGroups []runner.HostGroupDef) {
 	@Layout(product.DisplayName) {
 		<h1>{ product.DisplayName }</h1>
 		<p class="text-muted mb-3">{ nullStr(product.Description) }</p>
@@ -23,7 +23,24 @@ templ ProductDetailPage(product dbq.Product, hosts []dbq.Host, modes []string, d
 						</select>
 					</div>
 				</div>
-				if len(hosts) > 0 {
+				if len(hostGroups) > 0 && len(hosts) > 0 {
+					<div class="form-group">
+						<label>Assign Host Roles</label>
+						<div class="host-role-list">
+							for _, h := range hosts {
+								<div class="host-role-item">
+									<span class="host-role-name">{ h.Name } <span class="text-muted text-mono">({ h.Ip })</span></span>
+									<select name={ "host_role_" + itoa(h.ID) }>
+										<option value="">-- not assigned --</option>
+										for _, g := range hostGroups {
+											<option value={ g.Name }>{ g.DisplayName }</option>
+										}
+									</select>
+								</div>
+							}
+						</div>
+					</div>
+				} else if len(hosts) > 0 {
 					<div class="form-group">
 						<label>Target Hosts</label>
 						<div class="checkbox-group">

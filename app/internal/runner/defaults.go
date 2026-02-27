@@ -55,6 +55,13 @@ func LoadProductDefaults(deployDir, productName string) []DefaultVar {
 	return vars
 }
 
+// HostGroupDef defines a host group from _host_groups in defaults.yml.
+type HostGroupDef struct {
+	Name        string `yaml:"name"`
+	DisplayName string `yaml:"display_name"`
+	MinHosts    int    `yaml:"min"`
+}
+
 // ProductMeta holds internal metadata from a product's defaults.yml (keys starting with _).
 type ProductMeta struct {
 	GUIURL        string // _gui_url template
@@ -62,6 +69,7 @@ type ProductMeta struct {
 	LoginPassword string // _login_password template
 	DownloadFile  string // _download_file — remote path to fetch
 	DownloadName  string // _download_name — filename for download
+	HostGroups    []HostGroupDef
 }
 
 // LoadProductMeta reads the internal _-prefixed keys from a product's defaults.yml.
@@ -92,6 +100,16 @@ func LoadProductMeta(deployDir, productName string) ProductMeta {
 	}
 	if v, ok := raw["_download_name"]; ok {
 		meta.DownloadName = fmt.Sprintf("%v", v)
+	}
+	if v, ok := raw["_host_groups"]; ok {
+		// Re-marshal and unmarshal the list into []HostGroupDef
+		b, err := yaml.Marshal(v)
+		if err == nil {
+			var groups []HostGroupDef
+			if yaml.Unmarshal(b, &groups) == nil {
+				meta.HostGroups = groups
+			}
+		}
 	}
 	return meta
 }

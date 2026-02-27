@@ -1,7 +1,34 @@
 ---
-- name: Uninstall RKE2 (Kubernetes)
+# Play 1: Uninstall workers first (agent nodes)
+- name: Uninstall RKE2 agents (workers)
+  hosts: workers
+  become: true
+  ignore_unreachable: true
+  tasks:
+    - name: Run RKE2 agent uninstall script
+      shell: /usr/local/bin/rke2-agent-uninstall.sh
+      ignore_errors: true
+
+# Play 2: Uninstall masters (server nodes)
+- name: Uninstall RKE2 servers (masters)
+  hosts: masters
+  become: true
+  ignore_unreachable: true
+  tasks:
+    - name: Run RKE2 server uninstall script
+      shell: /usr/local/bin/rke2-uninstall.sh
+      ignore_errors: true
+
+    - name: Remove kubectl symlink
+      file:
+        path: /usr/local/bin/kubectl
+        state: absent
+
+# Play 3: Fallback for old deployments without groups
+- name: Uninstall RKE2 (fallback)
   hosts: all
   become: true
+  ignore_unreachable: true
   tasks:
     - name: Run RKE2 uninstall script (server)
       shell: /usr/local/bin/rke2-uninstall.sh

@@ -1,10 +1,10 @@
 ---
-- name: Install RKE2 (Kubernetes)
-  hosts: all
+# Play 1: Initialize first master node
+- name: Initialize RKE2 first master
+  hosts: masters[0]
   become: true
   vars:
     rke2_version: "v1.32.2+rke2r1"
-    rke2_type: "server"
     rke2_cni: "canal"
     rke2_token: "changeme"
   tasks:
@@ -16,9 +16,9 @@
         state: present
         update_cache: true
 
-    - name: Run RKE2 install script
+    - name: Run RKE2 install script (server)
       shell: |
-        curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION={{ rke2_version }} INSTALL_RKE2_TYPE={{ rke2_type }} sh -
+        curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION={{ rke2_version }} INSTALL_RKE2_TYPE=server sh -
       args:
         creates: /usr/local/bin/rke2
 
@@ -28,7 +28,7 @@
         state: directory
         mode: "0755"
 
-    - name: Write RKE2 config
+    - name: Write RKE2 config (first master)
       copy:
         dest: /etc/rancher/rke2/config.yaml
         content: |
@@ -37,41 +37,158 @@
           cni:
             - {{ rke2_cni }}
         mode: "0600"
-      notify: Restart rke2
+      notify: Restart rke2-server
 
-    - name: Enable and start RKE2 service
+    - name: Enable and start RKE2 server
       systemd:
-        name: "rke2-{{ rke2_type }}.service"
+        name: rke2-server.service
         daemon_reload: true
         enabled: true
         state: started
 
-    - name: Wait for RKE2 to be ready
+    - name: Wait for RKE2 kubeconfig
       wait_for:
         path: /etc/rancher/rke2/rke2.yaml
         timeout: 120
-      when: rke2_type == "server"
 
     - name: Symlink kubectl to /usr/local/bin
       file:
         src: /var/lib/rancher/rke2/bin/kubectl
         dest: /usr/local/bin/kubectl
         state: link
-      when: rke2_type == "server"
       ignore_errors: true
 
-    - name: Wait for node to be Ready
+    - name: Wait for first master node to be Ready
       shell: |
         export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
         /var/lib/rancher/rke2/bin/kubectl wait --for=condition=Ready node --all --timeout=120s
-      when: rke2_type == "server"
       retries: 3
       delay: 10
       register: node_ready
       until: node_ready.rc == 0
 
   handlers:
-    - name: Restart rke2
+    - name: Restart rke2-server
       systemd:
-        name: "rke2-{{ rke2_type }}.service"
+        name: rke2-server.service
+        state: restarted
+
+# Play 2: Join additional master nodes
+- name: Join additional RKE2 masters
+  hosts: masters[1:]
+  serial: 1
+  become: true
+  vars:
+    rke2_version: "v1.32.2+rke2r1"
+    rke2_cni: "canal"
+    rke2_token: "changeme"
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name:
+          - curl
+          - bash
+        state: present
+        update_cache: true
+
+    - name: Run RKE2 install script (server)
+      shell: |
+        curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION={{ rke2_version }} INSTALL_RKE2_TYPE=server sh -
+      args:
+        creates: /usr/local/bin/rke2
+
+    - name: Create RKE2 config directory
+      file:
+        path: /etc/rancher/rke2
+        state: directory
+        mode: "0755"
+
+    - name: Write RKE2 config (join master)
+      copy:
+        dest: /etc/rancher/rke2/config.yaml
+        content: |
+          # Managed by Opswise Deploy
+          token: {{ rke2_token }}
+          server: https://{{ hostvars[groups['masters'][0]]['inventory_hostname'] }}:9345
+          cni:
+            - {{ rke2_cni }}
+        mode: "0600"
+      notify: Restart rke2-server
+
+    - name: Enable and start RKE2 server
+      systemd:
+        name: rke2-server.service
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Wait for RKE2 kubeconfig
+      wait_for:
+        path: /etc/rancher/rke2/rke2.yaml
+        timeout: 120
+
+    - name: Wait for node to be Ready
+      shell: |
+        export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+        /var/lib/rancher/rke2/bin/kubectl wait --for=condition=Ready node {{ inventory_hostname }} --timeout=120s
+      retries: 3
+      delay: 10
+      register: node_ready
+      until: node_ready.rc == 0
+
+  handlers:
+    - name: Restart rke2-server
+      systemd:
+        name: rke2-server.service
+        state: restarted
+
+# Play 3: Join worker nodes as agents
+- name: Join RKE2 worker nodes
+  hosts: workers
+  become: true
+  vars:
+    rke2_version: "v1.32.2+rke2r1"
+    rke2_token: "changeme"
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name:
+          - curl
+          - bash
+        state: present
+        update_cache: true
+
+    - name: Run RKE2 install script (agent)
+      shell: |
+        curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION={{ rke2_version }} INSTALL_RKE2_TYPE=agent sh -
+      args:
+        creates: /usr/local/bin/rke2
+
+    - name: Create RKE2 config directory
+      file:
+        path: /etc/rancher/rke2
+        state: directory
+        mode: "0755"
+
+    - name: Write RKE2 config (agent)
+      copy:
+        dest: /etc/rancher/rke2/config.yaml
+        content: |
+          # Managed by Opswise Deploy
+          token: {{ rke2_token }}
+          server: https://{{ hostvars[groups['masters'][0]]['inventory_hostname'] }}:9345
+        mode: "0600"
+      notify: Restart rke2-agent
+
+    - name: Enable and start RKE2 agent
+      systemd:
+        name: rke2-agent.service
+        daemon_reload: true
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart rke2-agent
+      systemd:
+        name: rke2-agent.service
         state: restarted

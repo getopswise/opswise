@@ -4,15 +4,19 @@ rke2_version:
   - "v1.32.2+rke2r1"
   - "v1.31.6+rke2r1"
   - "v1.30.10+rke2r1"
-rke2_type:
-  - "server"
-  - "agent"
 rke2_cni:
   - "canal"
   - "cilium"
   - "calico"
   - "flannel"
 rke2_token: "changeme"
+_host_groups:
+  - name: masters
+    display_name: "Master Nodes (RKE2 Server)"
+    min: 1
+  - name: workers
+    display_name: "Worker Nodes (RKE2 Agent)"
+    min: 0
 _login_user: "admin"
 _login_password: "{rke2_token}"
 _download_file: "/etc/rancher/rke2/rke2.yaml"
