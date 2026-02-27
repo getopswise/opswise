@@ -55,32 +55,45 @@ func LoadProductDefaults(deployDir, productName string) []DefaultVar {
 	return vars
 }
 
-// LoadProductGUIURL reads the _gui_url template from a product's defaults.yml.
-// Returns empty string if the product has no GUI URL defined.
-func LoadProductGUIURL(deployDir, productName string) string {
+// ProductMeta holds internal metadata from a product's defaults.yml (keys starting with _).
+type ProductMeta struct {
+	GUIURL        string // _gui_url template
+	LoginUser     string // _login_user template
+	LoginPassword string // _login_password template
+}
+
+// LoadProductMeta reads the internal _-prefixed keys from a product's defaults.yml.
+func LoadProductMeta(deployDir, productName string) ProductMeta {
 	path := fmt.Sprintf("%s/products/%s/ansible/defaults.yml", deployDir, productName)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return ""
+		return ProductMeta{}
 	}
 
 	var raw map[string]interface{}
 	if err := yaml.Unmarshal(data, &raw); err != nil {
-		return ""
+		return ProductMeta{}
 	}
 
+	var meta ProductMeta
 	if v, ok := raw["_gui_url"]; ok {
-		return fmt.Sprintf("%v", v)
+		meta.GUIURL = fmt.Sprintf("%v", v)
 	}
-	return ""
+	if v, ok := raw["_login_user"]; ok {
+		meta.LoginUser = fmt.Sprintf("%v", v)
+	}
+	if v, ok := raw["_login_password"]; ok {
+		meta.LoginPassword = fmt.Sprintf("%v", v)
+	}
+	return meta
 }
 
-// ResolveGUIURL replaces {host} and config variable placeholders in a GUI URL template.
-func ResolveGUIURL(template string, hostIP string, config map[string]string) string {
-	if template == "" {
+// ResolveTemplate replaces {host} and config variable placeholders in a template string.
+func ResolveTemplate(tpl string, hostIP string, config map[string]string) string {
+	if tpl == "" {
 		return ""
 	}
-	result := strings.Replace(template, "{host}", hostIP, 1)
+	result := strings.Replace(tpl, "{host}", hostIP, 1)
 	for k, v := range config {
 		result = strings.Replace(result, "{"+k+"}", v, -1)
 	}

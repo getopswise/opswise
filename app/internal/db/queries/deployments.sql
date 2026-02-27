@@ -21,6 +21,9 @@ UPDATE deployments SET git_pushed = TRUE, updated_at = CURRENT_TIMESTAMP WHERE i
 -- name: UpdateDeploymentGUIURL :exec
 UPDATE deployments SET gui_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
+-- name: UpdateDeploymentCredentials :exec
+UPDATE deployments SET login_user = ?, login_password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
+
 -- name: ListDeploymentsByHostID :many
 SELECT * FROM deployments
 WHERE host_ids LIKE '%' || ? || '%'

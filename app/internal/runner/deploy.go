@@ -167,13 +167,23 @@ func (s *DeployService) runDeployment(id int64, params DeployParams) {
 	appendLog("")
 	if result.ExitCode == 0 {
 		appendLog("=== Deployment completed successfully ===")
-		// Resolve GUI URL if the product has one
-		if guiTpl := LoadProductGUIURL(s.deployDir, params.TargetName); guiTpl != "" && len(params.Hosts) > 0 {
-			guiURL := ResolveGUIURL(guiTpl, params.Hosts[0].Ip, params.Config)
-			if guiURL != "" {
+		// Resolve product metadata (GUI URL, credentials)
+		meta := LoadProductMeta(s.deployDir, params.TargetName)
+		if len(params.Hosts) > 0 {
+			hostIP := params.Hosts[0].Ip
+			if guiURL := ResolveTemplate(meta.GUIURL, hostIP, params.Config); guiURL != "" {
 				s.q.UpdateDeploymentGUIURL(ctx, dbq.UpdateDeploymentGUIURLParams{
 					ID:     id,
 					GuiUrl: sql.NullString{String: guiURL, Valid: true},
+				})
+			}
+			loginUser := ResolveTemplate(meta.LoginUser, hostIP, params.Config)
+			loginPass := ResolveTemplate(meta.LoginPassword, hostIP, params.Config)
+			if loginUser != "" || loginPass != "" {
+				s.q.UpdateDeploymentCredentials(ctx, dbq.UpdateDeploymentCredentialsParams{
+					ID:            id,
+					LoginUser:     sql.NullString{String: loginUser, Valid: loginUser != ""},
+					LoginPassword: sql.NullString{String: loginPass, Valid: loginPass != ""},
 				})
 			}
 		}

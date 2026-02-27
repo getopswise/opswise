@@ -61,6 +61,20 @@ templ DeploymentDetailPage(dep dbq.Deployment) {
 				<a href={ templ.SafeURL(dep.GuiUrl.String) } target="_blank" class="btn-primary btn-sm">Open</a>
 			</div>
 		}
+		if dep.Status == "success" && dep.LoginUser.Valid && dep.LoginUser.String != "" {
+			<div class="credentials-box mt-2 mb-2">
+				<div class="credentials-icon">
+					<i data-lucide="key-round"></i>
+				</div>
+				<div class="credentials-info">
+					<span class="credentials-label">Initial Login Credentials</span>
+					<div class="credentials-fields">
+						<span class="credentials-field"><strong>User:</strong> { dep.LoginUser.String }</span>
+						<span class="credentials-field"><strong>Password:</strong> { dep.LoginPassword.String }</span>
+					</div>
+				</div>
+			</div>
+		}
 		<div class="mt-2">
 			<button
 				class="btn-primary"

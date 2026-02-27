@@ -9,19 +9,21 @@ import (
 )
 
 type Deployment struct {
-	ID         int64
-	Name       string
-	Type       string
-	TargetName string
-	Mode       string
-	HostIds    string
-	Config     sql.NullString
-	Status     string
-	Log        sql.NullString
-	GitPushed  sql.NullBool
-	CreatedAt  sql.NullTime
-	UpdatedAt  sql.NullTime
-	GuiUrl     sql.NullString
+	ID            int64
+	Name          string
+	Type          string
+	TargetName    string
+	Mode          string
+	HostIds       string
+	Config        sql.NullString
+	Status        string
+	Log           sql.NullString
+	GitPushed     sql.NullBool
+	CreatedAt     sql.NullTime
+	UpdatedAt     sql.NullTime
+	GuiUrl        sql.NullString
+	LoginUser     sql.NullString
+	LoginPassword sql.NullString
 }
 
 type Host struct {

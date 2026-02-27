@@ -25,3 +25,5 @@ minecraft_level_name: world
 minecraft_online_mode: true
 minecraft_enable_rcon: true
 minecraft_install_dir: /opt/minecraft
+_login_user: "RCON"
+_login_password: "{minecraft_rcon_password}"

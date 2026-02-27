@@ -16,3 +16,5 @@ harbor_db_password: "harbor_db_pass"
 harbor_with_trivy: true
 harbor_protocol: "http"
 _gui_url: "{harbor_protocol}://{host}:{harbor_port}"
+_login_user: "admin"
+_login_password: "{harbor_admin_password}"

@@ -13,3 +13,5 @@ keycloak_java_package: openjdk-17-jre-headless
 keycloak_log_level: info
 keycloak_hostname: ""
 _gui_url: "http://{host}:{keycloak_port}"
+_login_user: "{keycloak_admin_user}"
+_login_password: "{keycloak_admin_password}"
