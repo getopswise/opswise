@@ -45,7 +45,13 @@ templ ProductDetailPage(product dbq.Product, hosts []dbq.Host, modes []string, d
 					for _, d := range defaults {
 						<div class="form-group">
 							<label for={ "config_" + d.Key }>{ formatVarLabel(d.Key, product.Name) }</label>
-							if strings.Contains(d.Key, "password") {
+							if len(d.Options) > 0 {
+								<select id={ "config_" + d.Key } name={ "config_" + d.Key }>
+									for _, opt := range d.Options {
+										<option value={ opt }>{ opt }</option>
+									}
+								</select>
+							} else if strings.Contains(d.Key, "password") {
 								<input type="password" id={ "config_" + d.Key } name={ "config_" + d.Key } value={ d.Value }/>
 							} else {
 								<input type="text" id={ "config_" + d.Key } name={ "config_" + d.Key } value={ d.Value }/>

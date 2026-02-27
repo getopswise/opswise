@@ -2,7 +2,10 @@
 # Harbor default variables
 # These are surfaced as configurable form fields in the Opswise GUI.
 
-harbor_version: "2.15.0"
+harbor_version:
+  - "2.15.0"
+  - "2.14.2"
+  - "2.13.4"
 harbor_hostname: "harbor.example.com"
 harbor_port: 80
 harbor_https_port: 443

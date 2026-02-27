@@ -1,6 +1,9 @@
 # Loki default variables
 # These values are surfaced as form fields in the Opswise GUI.
-loki_version: "3.6.7"
+loki_version:
+  - "3.6.7"
+  - "3.6.5"
+  - "3.5.10"
 loki_port: 3100
 loki_data_dir: /var/lib/loki
 loki_config_dir: /etc/loki

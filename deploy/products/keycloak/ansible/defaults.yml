@@ -1,6 +1,9 @@
 # Keycloak default variables
 # These values are surfaced as form fields in the Opswise GUI.
-keycloak_version: "26.5.4"
+keycloak_version:
+  - "26.5.4"
+  - "26.5.3"
+  - "26.4.0"
 keycloak_port: 8080
 keycloak_admin_user: admin
 keycloak_admin_password: "changeme"

@@ -1,6 +1,9 @@
 # GitLab CE default variables
 # These values are surfaced as form fields in the Opswise GUI.
-gitlab_version: "18.9.1"
+gitlab_version:
+  - "18.9.1"
+  - "18.8.5"
+  - "18.7.5"
 gitlab_domain: "gitlab.example.com"
 gitlab_port: 80
 gitlab_ssh_port: 2222

@@ -10,8 +10,9 @@ import (
 
 // DefaultVar represents a single configurable variable from a product's defaults.yml.
 type DefaultVar struct {
-	Key   string
-	Value string
+	Key     string
+	Value   string
+	Options []string // non-empty when the YAML value is a list (first item is the default)
 }
 
 // LoadProductDefaults reads a product's defaults.yml and returns the variables
@@ -30,10 +31,16 @@ func LoadProductDefaults(deployDir, productName string) []DefaultVar {
 
 	vars := make([]DefaultVar, 0, len(raw))
 	for k, v := range raw {
-		vars = append(vars, DefaultVar{
-			Key:   k,
-			Value: fmt.Sprintf("%v", v),
-		})
+		dv := DefaultVar{Key: k}
+		if list, ok := v.([]interface{}); ok && len(list) > 0 {
+			for _, item := range list {
+				dv.Options = append(dv.Options, fmt.Sprintf("%v", item))
+			}
+			dv.Value = dv.Options[0]
+		} else {
+			dv.Value = fmt.Sprintf("%v", v)
+		}
+		vars = append(vars, dv)
 	}
 
 	sort.Slice(vars, func(i, j int) bool {
