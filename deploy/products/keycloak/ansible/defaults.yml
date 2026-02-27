@@ -12,3 +12,4 @@ keycloak_db_type: dev-file
 keycloak_java_package: openjdk-17-jre-headless
 keycloak_log_level: info
 keycloak_hostname: ""
+_gui_url: "http://{host}:{keycloak_port}"

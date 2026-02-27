@@ -13,7 +13,7 @@ import (
 const createDeployment = `-- name: CreateDeployment :one
 INSERT INTO deployments (name, type, target_name, mode, host_ids, config, status)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at
+RETURNING id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url
 `
 
 type CreateDeploymentParams struct {
@@ -50,12 +50,13 @@ func (q *Queries) CreateDeployment(ctx context.Context, arg CreateDeploymentPara
 		&i.GitPushed,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GuiUrl,
 	)
 	return i, err
 }
 
 const getDeployment = `-- name: GetDeployment :one
-SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at FROM deployments WHERE id = ? LIMIT 1
+SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url FROM deployments WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetDeployment(ctx context.Context, id int64) (Deployment, error) {
@@ -74,12 +75,13 @@ func (q *Queries) GetDeployment(ctx context.Context, id int64) (Deployment, erro
 		&i.GitPushed,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GuiUrl,
 	)
 	return i, err
 }
 
 const listDeployments = `-- name: ListDeployments :many
-SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at FROM deployments ORDER BY created_at DESC
+SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url FROM deployments ORDER BY created_at DESC
 `
 
 func (q *Queries) ListDeployments(ctx context.Context) ([]Deployment, error) {
@@ -104,6 +106,7 @@ func (q *Queries) ListDeployments(ctx context.Context) ([]Deployment, error) {
 			&i.GitPushed,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.GuiUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -119,7 +122,7 @@ func (q *Queries) ListDeployments(ctx context.Context) ([]Deployment, error) {
 }
 
 const listDeploymentsByHostID = `-- name: ListDeploymentsByHostID :many
-SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at FROM deployments
+SELECT id, name, type, target_name, mode, host_ids, config, status, log, git_pushed, created_at, updated_at, gui_url FROM deployments
 WHERE host_ids LIKE '%' || ? || '%'
 ORDER BY created_at DESC
 `
@@ -146,6 +149,7 @@ func (q *Queries) ListDeploymentsByHostID(ctx context.Context, dollar_1 sql.Null
 			&i.GitPushed,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.GuiUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -166,6 +170,20 @@ UPDATE deployments SET git_pushed = TRUE, updated_at = CURRENT_TIMESTAMP WHERE i
 
 func (q *Queries) SetDeploymentGitPushed(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, setDeploymentGitPushed, id)
+	return err
+}
+
+const updateDeploymentGUIURL = `-- name: UpdateDeploymentGUIURL :exec
+UPDATE deployments SET gui_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+`
+
+type UpdateDeploymentGUIURLParams struct {
+	GuiUrl sql.NullString
+	ID     int64
+}
+
+func (q *Queries) UpdateDeploymentGUIURL(ctx context.Context, arg UpdateDeploymentGUIURLParams) error {
+	_, err := q.db.ExecContext(ctx, updateDeploymentGUIURL, arg.GuiUrl, arg.ID)
 	return err
 }
 

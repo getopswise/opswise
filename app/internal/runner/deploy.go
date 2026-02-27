@@ -167,6 +167,16 @@ func (s *DeployService) runDeployment(id int64, params DeployParams) {
 	appendLog("")
 	if result.ExitCode == 0 {
 		appendLog("=== Deployment completed successfully ===")
+		// Resolve GUI URL if the product has one
+		if guiTpl := LoadProductGUIURL(s.deployDir, params.TargetName); guiTpl != "" && len(params.Hosts) > 0 {
+			guiURL := ResolveGUIURL(guiTpl, params.Hosts[0].Ip, params.Config)
+			if guiURL != "" {
+				s.q.UpdateDeploymentGUIURL(ctx, dbq.UpdateDeploymentGUIURLParams{
+					ID:     id,
+					GuiUrl: sql.NullString{String: guiURL, Valid: true},
+				})
+			}
+		}
 		s.finishDeployment(ctx, id, "success", logBuf.String())
 		s.tryGitPush(ctx, id, params, appendLog)
 	} else {

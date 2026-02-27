@@ -14,3 +14,4 @@ gitlab_root_password: "changeme"
 gitlab_puma_workers: 2
 gitlab_sidekiq_concurrency: 10
 gitlab_shared_buffers: "256MB"
+_gui_url: "http://{host}:{gitlab_port}"

@@ -49,6 +49,11 @@ templ DeploymentDetailPage(dep dbq.Deployment) {
 				}
 			</div>
 		}
+		if dep.Status == "success" && dep.GuiUrl.Valid && dep.GuiUrl.String != "" {
+			<div class="mt-2 mb-2">
+				<a href={ templ.SafeURL(dep.GuiUrl.String) } target="_blank" class="btn-primary">Open GUI</a>
+			</div>
+		}
 		<div class="mt-2">
 			<button
 				class="btn-primary"

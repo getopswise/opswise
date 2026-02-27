@@ -21,6 +21,7 @@ type Deployment struct {
 	GitPushed  sql.NullBool
 	CreatedAt  sql.NullTime
 	UpdatedAt  sql.NullTime
+	GuiUrl     sql.NullString
 }
 
 type Host struct {

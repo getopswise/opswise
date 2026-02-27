@@ -14,3 +14,4 @@ grafana_provisioning_dir: /etc/grafana/provisioning
 grafana_log_mode: console file
 grafana_log_level: info
 grafana_allow_sign_up: false
+_gui_url: "http://{host}:{grafana_port}"

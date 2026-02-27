@@ -11,3 +11,4 @@ prometheus_config_dir: /etc/prometheus
 prometheus_retention: "15d"
 prometheus_user: prometheus
 prometheus_group: prometheus
+_gui_url: "http://{host}:{prometheus_port}"
