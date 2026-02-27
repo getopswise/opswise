@@ -1,7 +1,7 @@
 # Prometheus default variables
 # These are surfaced as configurable form fields in the Opswise GUI.
 
-prometheus_version: "2.51.0"
+prometheus_version: "3.10.0"
 prometheus_port: 9090
 prometheus_data_dir: /var/lib/prometheus
 prometheus_config_dir: /etc/prometheus

@@ -3,7 +3,7 @@
   hosts: all
   become: true
   vars:
-    loki_version: "2.9.6"
+    loki_version: "3.6.7"
     loki_port: 3100
     loki_data_dir: /var/lib/loki
     loki_config_dir: /etc/loki

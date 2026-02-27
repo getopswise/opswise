@@ -3,7 +3,7 @@
   hosts: all
   become: true
   vars:
-    gitlab_version: "16.11.0"
+    gitlab_version: "18.9.1"
     gitlab_domain: "gitlab.example.com"
     gitlab_port: 80
     gitlab_ssh_port: 2222

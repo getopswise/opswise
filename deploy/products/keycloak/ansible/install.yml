@@ -3,7 +3,7 @@
   hosts: all
   become: true
   vars:
-    keycloak_version: "24.0.0"
+    keycloak_version: "26.5.4"
     keycloak_port: 8080
     keycloak_admin_user: admin
     keycloak_admin_password: "changeme"
