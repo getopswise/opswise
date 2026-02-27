@@ -1,0 +1,27 @@
+# Minecraft Java Edition default variables
+# These values are surfaced as form fields in the Opswise GUI.
+minecraft_version:
+  - "1.21.5"
+  - "1.21.4"
+  - "1.21.3"
+minecraft_port: 25565
+minecraft_rcon_port: 25575
+minecraft_rcon_password: "changeme"
+minecraft_max_memory: "2G"
+minecraft_min_memory: "1G"
+minecraft_max_players: 20
+minecraft_motd: "A Minecraft Server managed by Opswise"
+minecraft_difficulty:
+  - "normal"
+  - "easy"
+  - "hard"
+  - "peaceful"
+minecraft_gamemode:
+  - "survival"
+  - "creative"
+  - "adventure"
+  - "spectator"
+minecraft_level_name: world
+minecraft_online_mode: true
+minecraft_enable_rcon: true
+minecraft_install_dir: /opt/minecraft

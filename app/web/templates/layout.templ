@@ -7,6 +7,7 @@ templ Layout(title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title } - Opswise Deploy</title>
+			<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 			<link rel="preconnect" href="https://fonts.googleapis.com"/>
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 			<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet"/>
@@ -14,6 +15,7 @@ templ Layout(title string) {
 			<script src="/static/js/htmx.min.js"></script>
 			<script src="/static/js/htmx-sse.js"></script>
 			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+			<script src="https://unpkg.com/lucide@latest"></script>
 		</head>
 		<body>
 			<nav>
@@ -30,6 +32,9 @@ templ Layout(title string) {
 			<main>
 				{ children... }
 			</main>
+			<script>
+				document.addEventListener("DOMContentLoaded", function() { lucide.createIcons(); });
+			</script>
 		</body>
 	</html>
 }

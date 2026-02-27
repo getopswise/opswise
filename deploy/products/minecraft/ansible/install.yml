@@ -1,0 +1,145 @@
+---
+- name: Install Minecraft Java Edition Server
+  hosts: all
+  become: true
+  vars:
+    minecraft_version: "1.21.5"
+    minecraft_port: 25565
+    minecraft_rcon_port: 25575
+    minecraft_rcon_password: "changeme"
+    minecraft_max_memory: "2G"
+    minecraft_min_memory: "1G"
+    minecraft_max_players: 20
+    minecraft_motd: "A Minecraft Server managed by Opswise"
+    minecraft_difficulty: "normal"
+    minecraft_gamemode: "survival"
+    minecraft_level_name: world
+    minecraft_online_mode: true
+    minecraft_enable_rcon: true
+    minecraft_install_dir: /opt/minecraft
+  tasks:
+    - name: Install Java (OpenJDK 21)
+      apt:
+        name: openjdk-21-jre-headless
+        state: present
+        update_cache: true
+
+    - name: Create minecraft system user
+      user:
+        name: minecraft
+        system: true
+        shell: /usr/sbin/nologin
+        home: "{{ minecraft_install_dir }}"
+        create_home: false
+
+    - name: Create Minecraft install directory
+      file:
+        path: "{{ minecraft_install_dir }}"
+        state: directory
+        owner: minecraft
+        group: minecraft
+        mode: "0755"
+
+    - name: Download Minecraft server jar
+      get_url:
+        url: "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
+        dest: "{{ minecraft_install_dir }}/server.jar"
+        owner: minecraft
+        group: minecraft
+        mode: "0644"
+      when: minecraft_version == "1.21.5"
+
+    - name: Download Minecraft server jar (1.21.4)
+      get_url:
+        url: "https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar"
+        dest: "{{ minecraft_install_dir }}/server.jar"
+        owner: minecraft
+        group: minecraft
+        mode: "0644"
+      when: minecraft_version == "1.21.4"
+
+    - name: Download Minecraft server jar (1.21.3)
+      get_url:
+        url: "https://piston-data.mojang.com/v1/objects/45810d238246d90e811d896f87b14695b7fb6839/server.jar"
+        dest: "{{ minecraft_install_dir }}/server.jar"
+        owner: minecraft
+        group: minecraft
+        mode: "0644"
+      when: minecraft_version == "1.21.3"
+
+    - name: Accept EULA
+      copy:
+        dest: "{{ minecraft_install_dir }}/eula.txt"
+        content: "eula=true\n"
+        owner: minecraft
+        group: minecraft
+        mode: "0644"
+
+    - name: Write server.properties
+      copy:
+        dest: "{{ minecraft_install_dir }}/server.properties"
+        content: |
+          # Managed by Opswise Deploy - do not edit manually
+          server-port={{ minecraft_port }}
+          max-players={{ minecraft_max_players }}
+          motd={{ minecraft_motd }}
+          difficulty={{ minecraft_difficulty }}
+          gamemode={{ minecraft_gamemode }}
+          level-name={{ minecraft_level_name }}
+          online-mode={{ minecraft_online_mode }}
+          enable-rcon={{ minecraft_enable_rcon }}
+          rcon.port={{ minecraft_rcon_port }}
+          rcon.password={{ minecraft_rcon_password }}
+          enable-command-block=true
+          spawn-protection=16
+          view-distance=10
+          simulation-distance=10
+        owner: minecraft
+        group: minecraft
+        mode: "0644"
+      notify: Restart minecraft
+
+    - name: Create systemd service for Minecraft
+      copy:
+        dest: /etc/systemd/system/minecraft.service
+        content: |
+          [Unit]
+          Description=Minecraft Java Edition Server
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=minecraft
+          Group=minecraft
+          WorkingDirectory={{ minecraft_install_dir }}
+          ExecStart=/usr/bin/java -Xms{{ minecraft_min_memory }} -Xmx{{ minecraft_max_memory }} -jar server.jar nogui
+          Restart=on-failure
+          RestartSec=10
+          StandardOutput=journal
+          StandardError=journal
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+      notify: Restart minecraft
+
+    - name: Enable and start Minecraft server
+      systemd:
+        name: minecraft
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Wait for Minecraft server to be available
+      wait_for:
+        port: "{{ minecraft_port }}"
+        host: 0.0.0.0
+        delay: 10
+        timeout: 120
+        state: started
+
+  handlers:
+    - name: Restart minecraft
+      systemd:
+        name: minecraft
+        state: restarted

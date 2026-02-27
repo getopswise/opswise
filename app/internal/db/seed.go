@@ -64,6 +64,14 @@ func seedProducts(ctx context.Context, q *dbq.Queries) {
 			Modes:       `["ansible","compose","helm"]`,
 		},
 		{
+			Name:        "minecraft",
+			DisplayName: "Minecraft Java Edition",
+			Description: ns("Minecraft Java Edition dedicated server"),
+			Version:     ns("1.21.5"),
+			Icon:        ns("gamepad-2"),
+			Modes:       `["ansible"]`,
+		},
+		{
 			Name:        "argocd",
 			DisplayName: "ArgoCD",
 			Description: ns("Declarative GitOps continuous delivery tool for Kubernetes"),

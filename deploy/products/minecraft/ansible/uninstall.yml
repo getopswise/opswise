@@ -1,0 +1,33 @@
+---
+- name: Uninstall Minecraft Java Edition Server
+  hosts: all
+  become: true
+  vars:
+    minecraft_install_dir: /opt/minecraft
+  tasks:
+    - name: Stop and disable Minecraft service
+      systemd:
+        name: minecraft
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove systemd service file
+      file:
+        path: /etc/systemd/system/minecraft.service
+        state: absent
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: true
+
+    - name: Remove Minecraft install directory
+      file:
+        path: "{{ minecraft_install_dir }}"
+        state: absent
+
+    - name: Remove minecraft user
+      user:
+        name: minecraft
+        state: absent
+        remove: true

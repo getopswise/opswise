@@ -50,8 +50,15 @@ templ DeploymentDetailPage(dep dbq.Deployment) {
 			</div>
 		}
 		if dep.Status == "success" && dep.GuiUrl.Valid && dep.GuiUrl.String != "" {
-			<div class="mt-2 mb-2">
-				<a href={ templ.SafeURL(dep.GuiUrl.String) } target="_blank" class="btn-primary">Open GUI</a>
+			<div class="gui-link-box mt-2 mb-2">
+				<div class="gui-link-icon">
+					<i data-lucide="external-link"></i>
+				</div>
+				<div class="gui-link-info">
+					<span class="gui-link-label">Application GUI</span>
+					<a href={ templ.SafeURL(dep.GuiUrl.String) } target="_blank" class="gui-link-url">{ dep.GuiUrl.String }</a>
+				</div>
+				<a href={ templ.SafeURL(dep.GuiUrl.String) } target="_blank" class="btn-primary btn-sm">Open</a>
 			</div>
 		}
 		<div class="mt-2">
