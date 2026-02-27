@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/getopswise/opswise/app/internal/crypto"
 	"github.com/getopswise/opswise/app/internal/db/dbq"
@@ -41,7 +42,11 @@ func (h *HostHandler) Create(w http.ResponseWriter, r *http.Request) {
 		port = 22
 	}
 
-	sshKey := r.FormValue("ssh_key")
+	sshKey := strings.ReplaceAll(r.FormValue("ssh_key"), "\r\n", "\n")
+	sshKey = strings.TrimSpace(sshKey)
+	if sshKey != "" {
+		sshKey += "\n"
+	}
 	tags := r.FormValue("tags")
 
 	var encKey, fingerprint string
@@ -151,7 +156,11 @@ func (h *HostHandler) Update(w http.ResponseWriter, r *http.Request) {
 		port = 22
 	}
 
-	sshKey := r.FormValue("ssh_key")
+	sshKey := strings.ReplaceAll(r.FormValue("ssh_key"), "\r\n", "\n")
+	sshKey = strings.TrimSpace(sshKey)
+	if sshKey != "" {
+		sshKey += "\n"
+	}
 	tags := r.FormValue("tags")
 
 	// Get existing host for preserving values

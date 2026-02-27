@@ -53,6 +53,7 @@ templ DeploymentDetailPage(dep dbq.Deployment) {
 			<button
 				class="btn-primary"
 				hx-post={ "/deployments/" + itoa(dep.ID) + "/redeploy" }
+				hx-disabled-elt="this"
 			>Redeploy</button>
 			<a href="/deployments" class="btn">Back to Deployments</a>
 		</div>

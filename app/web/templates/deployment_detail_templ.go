@@ -206,7 +206,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\">Redeploy</button> <a href=\"/deployments\" class=\"btn\">Back to Deployments</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" hx-disabled-elt=\"this\">Redeploy</button> <a href=\"/deployments\" class=\"btn\">Back to Deployments</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -19,17 +21,28 @@ type Result struct {
 // RunPlaybook executes an ansible-playbook command and streams output line by line
 // through the returned io.Reader. The done channel receives the result when complete.
 func RunPlaybook(playbook string, inventory []string, extraVars map[string]string) (io.Reader, <-chan Result, error) {
+	// Write inventory to a temp file so host variables are parsed correctly
+	invFile, err := os.CreateTemp("", "opswise-inv-*.ini")
+	if err != nil {
+		return nil, nil, fmt.Errorf("create inventory file: %w", err)
+	}
+	invContent := "[all]\n" + strings.Join(inventory, "\n") + "\n"
+	invFile.WriteString(invContent)
+	invFile.Close()
+
 	args := []string{
 		playbook,
-		"-i", strings.Join(inventory, ",") + ",",
-		"--no-color",
+		"-i", invFile.Name(),
 	}
 	if len(extraVars) > 0 {
 		varsJSON, _ := json.Marshal(extraVars)
 		args = append(args, "--extra-vars", string(varsJSON))
 	}
 
+	log.Printf("[ansible] command: ansible-playbook %v", args)
+	log.Printf("[ansible] inventory:\n%s", invContent)
 	cmd := exec.Command("ansible-playbook", args...)
+	cmd.Env = append(os.Environ(), "ANSIBLE_NOCOLOR=1", "ANSIBLE_HOST_KEY_CHECKING=False")
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -49,6 +62,8 @@ func RunPlaybook(playbook string, inventory []string, extraVars map[string]strin
 	}
 
 	go func() {
+		defer os.Remove(invFile.Name())
+
 		var wg sync.WaitGroup
 		wg.Add(2)
 
