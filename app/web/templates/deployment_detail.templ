@@ -40,6 +40,12 @@ templ DeploymentDetailPage(dep dbq.Deployment) {
 			>
 				<div class="log-loading">Waiting for output...</div>
 			</div>
+			<script>
+				document.body.addEventListener("htmx:sseOpen", function() {
+					var el = document.getElementById("log-output");
+					if (el) el.innerHTML = "";
+				});
+			</script>
 		} else {
 			<div id="log-output" class="log-output">
 				if dep.Log.Valid {

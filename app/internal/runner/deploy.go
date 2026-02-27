@@ -25,6 +25,7 @@ type DeployService struct {
 
 	mu          sync.RWMutex
 	subscribers map[int64][]chan string
+	liveLogs    map[int64][]string // accumulated log lines for running deployments
 }
 
 // NewDeployService creates a new deploy service.
@@ -34,14 +35,20 @@ func NewDeployService(q *dbq.Queries, deployDir string, masterKey []byte) *Deplo
 		deployDir:   deployDir,
 		masterKey:   masterKey,
 		subscribers: make(map[int64][]chan string),
+		liveLogs:    make(map[int64][]string),
 	}
 }
 
 // Subscribe returns a channel that receives log lines for the given deployment.
+// It also replays any accumulated log lines so the subscriber catches up.
 func (s *DeployService) Subscribe(deploymentID int64) chan string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	ch := make(chan string, 64)
+	ch := make(chan string, 256)
+	// Replay accumulated log lines
+	for _, line := range s.liveLogs[deploymentID] {
+		ch <- line
+	}
 	s.subscribers[deploymentID] = append(s.subscribers[deploymentID], ch)
 	return ch
 }
@@ -61,8 +68,11 @@ func (s *DeployService) Unsubscribe(deploymentID int64, ch chan string) {
 }
 
 func (s *DeployService) broadcast(deploymentID int64, line string) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if line != "" {
+		s.liveLogs[deploymentID] = append(s.liveLogs[deploymentID], line)
+	}
 	for _, ch := range s.subscribers[deploymentID] {
 		select {
 		case ch <- line:
@@ -211,12 +221,13 @@ func (s *DeployService) finishDeployment(ctx context.Context, id int64, status, 
 	// Broadcast completion sentinel
 	s.broadcast(id, "")
 
-	// Clean up subscribers
+	// Clean up subscribers and live log buffer
 	s.mu.Lock()
 	for _, ch := range s.subscribers[id] {
 		close(ch)
 	}
 	delete(s.subscribers, id)
+	delete(s.liveLogs, id)
 	s.mu.Unlock()
 }
 

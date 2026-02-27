@@ -3,8 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/getopswise/opswise/app/internal/db/dbq"
 	"github.com/getopswise/opswise/app/internal/runner"
@@ -80,21 +82,22 @@ func (h *DeploymentHandler) LogStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Subscribe to live updates
+	// Subscribe to live updates (replays accumulated log)
 	ch := h.deploy.Subscribe(id)
 
-	// Send existing log first if any
-	if dep.Log.Valid && dep.Log.String != "" {
-		fmt.Fprintf(w, "data: %s\n\n", dep.Log.String)
-		flusher.Flush()
-	}
-
 	ctx := r.Context()
+	keepalive := time.NewTicker(15 * time.Second)
+	defer keepalive.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			h.deploy.Unsubscribe(id, ch)
 			return
+		case <-keepalive.C:
+			// SSE comment to keep connection alive during long tasks
+			fmt.Fprintf(w, ": keepalive\n\n")
+			flusher.Flush()
 		case line, ok := <-ch:
 			if !ok {
 				// Channel closed — deployment finished
@@ -107,7 +110,7 @@ func (h *DeploymentHandler) LogStream(w http.ResponseWriter, r *http.Request) {
 			if line == "" {
 				continue
 			}
-			fmt.Fprintf(w, "data: %s\n\n", line)
+			fmt.Fprintf(w, "data: <div>%s</div>\n\n", html.EscapeString(line))
 			flusher.Flush()
 		}
 	}

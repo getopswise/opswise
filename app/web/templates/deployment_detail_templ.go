@@ -163,7 +163,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" sse-swap=\"message\" hx-swap=\"beforeend\"><div class=\"log-loading\">Waiting for output...</div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" sse-swap=\"message\" hx-swap=\"beforeend\"><div class=\"log-loading\">Waiting for output...</div></div><script>\n\t\t\t\tdocument.body.addEventListener(\"htmx:sseOpen\", function() {\n\t\t\t\t\tvar el = document.getElementById(\"log-output\");\n\t\t\t\t\tif (el) el.innerHTML = \"\";\n\t\t\t\t});\n\t\t\t</script>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -176,7 +176,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(dep.Log.String)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 46, Col: 21}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 52, Col: 21}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -205,7 +205,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 				var templ_7745c5c3_Var13 templ.SafeURL
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(dep.GuiUrl.String))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 59, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 65, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -218,7 +218,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(dep.GuiUrl.String)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 59, Col: 106}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 65, Col: 106}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -231,7 +231,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 				var templ_7745c5c3_Var15 templ.SafeURL
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(dep.GuiUrl.String))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 61, Col: 46}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 67, Col: 46}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -254,7 +254,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(dep.LoginUser.String)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 72, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 78, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -267,7 +267,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(dep.LoginPassword.String)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 73, Col: 91}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 79, Col: 91}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -285,7 +285,7 @@ func DeploymentDetailPage(dep dbq.Deployment) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs("/deployments/" + itoa(dep.ID) + "/redeploy")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 81, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/deployment_detail.templ`, Line: 87, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
