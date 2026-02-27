@@ -81,6 +81,34 @@ opswise/
 └── SPEC.md
 ```
 
+## SSH Key Management
+
+Opswise uses **key-based SSH authentication only**. Private keys are encrypted with AES-256-GCM and stored in the database — they never need to exist on disk.
+
+### Recommended workflow
+
+```bash
+# 1. Generate a dedicated key pair
+ssh-keygen -t ed25519 -f /tmp/opswise_key -N ""
+
+# 2. Install the public key on your target host(s)
+ssh-copy-id -i /tmp/opswise_key.pub user@host
+
+# 3. Paste the private key into the Opswise GUI (Hosts → Add Host → SSH Private Key)
+cat /tmp/opswise_key
+
+# 4. Delete the key files from disk
+rm /tmp/opswise_key /tmp/opswise_key.pub
+```
+
+After this, the private key lives only encrypted in the SQLite database. Opswise decrypts it in memory when needed for connection tests or Ansible deployments.
+
+### Authentication fallback chain
+
+1. **Per-host key** — stored encrypted in the database via the host form
+2. **Global key** — file path configured in Settings
+3. **Default keys** — `~/.ssh/id_rsa`, `id_ed25519`, `id_ecdsa`
+
 ## Deployment Flow
 
 1. Select a product or stack
