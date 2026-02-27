@@ -256,45 +256,35 @@ func (s *DeployService) runAnsible(params DeployParams, appendLog func(string)) 
 	var inventory []string
 	for _, h := range params.Hosts {
 		entry := fmt.Sprintf("%s ansible_user=%s ansible_port=%d", h.Ip, h.SshUser, h.SshPort)
-		switch {
-		case h.SshKey.Valid && h.SshKey.String != "":
+		if h.SshKey.Valid && h.SshKey.String != "" {
 			// Decrypt key content and write to temp file
 			keyData, err := crypto.Decrypt(h.SshKey.String, s.masterKey)
 			if err != nil {
 				log.Printf("failed to decrypt SSH key for host %s: %v", h.Name, err)
-				break
+			} else {
+				tmpFile, err := os.CreateTemp("", "opswise-ssh-*")
+				if err != nil {
+					log.Printf("failed to create temp key file for host %s: %v", h.Name, err)
+				} else {
+					if _, err := tmpFile.Write(keyData); err != nil {
+						tmpFile.Close()
+						os.Remove(tmpFile.Name())
+						log.Printf("failed to write temp key file for host %s: %v", h.Name, err)
+					} else {
+						tmpFile.Close()
+						os.Chmod(tmpFile.Name(), 0600)
+						tmpFiles = append(tmpFiles, tmpFile.Name())
+						entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", tmpFile.Name())
+						appendLog(fmt.Sprintf("Host %s: using encrypted SSH key", h.Name))
+					}
+				}
 			}
-			tmpFile, err := os.CreateTemp("", "opswise-ssh-*")
-			if err != nil {
-				log.Printf("failed to create temp key file for host %s: %v", h.Name, err)
-				break
-			}
-			if _, err := tmpFile.Write(keyData); err != nil {
-				tmpFile.Close()
-				os.Remove(tmpFile.Name())
-				log.Printf("failed to write temp key file for host %s: %v", h.Name, err)
-				break
-			}
-			tmpFile.Close()
-			os.Chmod(tmpFile.Name(), 0600)
-			tmpFiles = append(tmpFiles, tmpFile.Name())
-			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", tmpFile.Name())
-			appendLog(fmt.Sprintf("Host %s: using encrypted SSH key", h.Name))
-		case h.SshPassword.Valid && h.SshPassword.String != "":
-			// Decrypt password
-			passData, err := crypto.Decrypt(h.SshPassword.String, s.masterKey)
-			if err != nil {
-				log.Printf("failed to decrypt SSH password for host %s: %v", h.Name, err)
-				break
-			}
-			entry += fmt.Sprintf(" ansible_password=%s ansible_ssh_extra_args='-o StrictHostKeyChecking=no'", string(passData))
-			appendLog(fmt.Sprintf("Host %s: using encrypted password", h.Name))
-		case globalSSHKey != "":
+		} else if globalSSHKey != "" {
 			entry += fmt.Sprintf(" ansible_ssh_private_key_file=%s", globalSSHKey)
 		}
 		inventory = append(inventory, entry)
 	}
-	appendLog(fmt.Sprintf("Inventory: %s", sanitizeInventoryLog(inventory)))
+	appendLog(fmt.Sprintf("Inventory: %s", strings.Join(inventory, ", ")))
 	appendLog("")
 
 	reader, done, err := RunPlaybook(playbook, inventory, params.Config)
@@ -312,25 +302,6 @@ func (s *DeployService) runAnsible(params DeployParams, appendLog func(string)) 
 	}()
 
 	return reader, wrappedDone, nil
-}
-
-// sanitizeInventoryLog replaces password values with [encrypted] in inventory log lines.
-func sanitizeInventoryLog(inventory []string) string {
-	var sanitized []string
-	for _, entry := range inventory {
-		// Mask ansible_password values
-		parts := strings.Split(entry, " ")
-		var clean []string
-		for _, p := range parts {
-			if strings.HasPrefix(p, "ansible_password=") {
-				clean = append(clean, "ansible_password=[encrypted]")
-			} else {
-				clean = append(clean, p)
-			}
-		}
-		sanitized = append(sanitized, strings.Join(clean, " "))
-	}
-	return strings.Join(sanitized, ", ")
 }
 
 func (s *DeployService) runComposeMode(params DeployParams, appendLog func(string)) (io.Reader, <-chan Result, error) {

@@ -43,7 +43,7 @@ func HostsPage(hosts []dbq.Host) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"page-header\"><h1>Hosts</h1></div><div class=\"form-inline\"><h2>Add Host</h2><form method=\"POST\" action=\"/hosts\"><div class=\"form-row\"><div class=\"form-group\"><label for=\"name\">Name</label> <input type=\"text\" id=\"name\" name=\"name\" placeholder=\"web-server-1\" required></div><div class=\"form-group\"><label for=\"ip\">IP Address</label> <input type=\"text\" id=\"ip\" name=\"ip\" placeholder=\"192.168.1.100\" required></div><div class=\"form-group\"><label for=\"ssh_user\">SSH User</label> <input type=\"text\" id=\"ssh_user\" name=\"ssh_user\" placeholder=\"root\" value=\"root\"></div><div class=\"form-group\"><label for=\"ssh_port\">SSH Port</label> <input type=\"number\" id=\"ssh_port\" name=\"ssh_port\" placeholder=\"22\" value=\"22\"></div><div class=\"form-group\"><label for=\"ssh_key\">SSH Key Path</label> <input type=\"text\" id=\"ssh_key\" name=\"ssh_key\" placeholder=\"~/.ssh/id_rsa\"></div><div class=\"form-group\"><label for=\"ssh_password\">SSH Password</label> <input type=\"password\" id=\"ssh_password\" name=\"ssh_password\" placeholder=\"(optional)\"></div><div class=\"form-group\"><label for=\"tags\">Tags</label> <input type=\"text\" id=\"tags\" name=\"tags\" placeholder=\"web, production\"></div></div><div class=\"form-actions\"><button type=\"submit\" class=\"btn-primary\">Add Host</button></div></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"page-header\"><h1>Hosts</h1></div><div class=\"form-inline\"><h2>Add Host</h2><form method=\"POST\" action=\"/hosts\"><div class=\"form-row\"><div class=\"form-group\"><label for=\"name\">Name</label> <input type=\"text\" id=\"name\" name=\"name\" placeholder=\"web-server-1\" required></div><div class=\"form-group\"><label for=\"ip\">IP Address</label> <input type=\"text\" id=\"ip\" name=\"ip\" placeholder=\"192.168.1.100\" required></div><div class=\"form-group\"><label for=\"ssh_user\">SSH User</label> <input type=\"text\" id=\"ssh_user\" name=\"ssh_user\" placeholder=\"root\" value=\"root\"></div><div class=\"form-group\"><label for=\"ssh_port\">SSH Port</label> <input type=\"number\" id=\"ssh_port\" name=\"ssh_port\" placeholder=\"22\" value=\"22\"></div><div class=\"form-group\"><label for=\"tags\">Tags</label> <input type=\"text\" id=\"tags\" name=\"tags\" placeholder=\"web, production\"></div></div><div class=\"form-group\" style=\"max-width: 480px;\"><label for=\"ssh_key\">SSH Private Key</label> <textarea id=\"ssh_key\" name=\"ssh_key\" rows=\"6\" placeholder=\"Paste PEM private key content (optional)\" style=\"font-family: monospace; font-size: 0.85rem;\"></textarea></div><div class=\"form-actions\"><button type=\"submit\" class=\"btn-primary\">Add Host</button></div></form></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -53,7 +53,7 @@ func HostsPage(hosts []dbq.Host) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<table><thead><tr><th>Name</th><th>IP</th><th>SSH User</th><th>Port</th><th>SSH Key</th><th>Tags</th><th>Actions</th></tr></thead> <tbody>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<table><thead><tr><th>Name</th><th>IP</th><th>SSH User</th><th>Port</th><th>Key Fingerprint</th><th>Tags</th><th>Actions</th></tr></thead> <tbody>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -65,7 +65,7 @@ func HostsPage(hosts []dbq.Host) templ.Component {
 					var templ_7745c5c3_Var3 templ.SafeURL
 					templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/hosts/" + itoa(h.ID)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 68, Col: 58}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 64, Col: 58}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 					if templ_7745c5c3_Err != nil {
@@ -78,7 +78,7 @@ func HostsPage(hosts []dbq.Host) templ.Component {
 					var templ_7745c5c3_Var4 string
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(h.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 68, Col: 69}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 64, Col: 69}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 					if templ_7745c5c3_Err != nil {
@@ -91,7 +91,7 @@ func HostsPage(hosts []dbq.Host) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(h.Ip)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 69, Col: 41}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 65, Col: 41}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {
@@ -104,7 +104,7 @@ func HostsPage(hosts []dbq.Host) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(h.SshUser)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 70, Col: 22}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 66, Col: 22}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -117,33 +117,33 @@ func HostsPage(hosts []dbq.Host) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(itoa(h.SshPort))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 71, Col: 28}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 67, Col: 28}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</td><td>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</td><td><span class=\"text-mono\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var8 string
-					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(nullStr(h.SshKey))
+					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(nullStr(h.KeyFingerprint))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 72, Col: 30}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 68, Col: 62}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</td><td>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</span></td><td>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(nullStr(h.Tags))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 73, Col: 28}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 69, Col: 28}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -156,7 +156,7 @@ func HostsPage(hosts []dbq.Host) templ.Component {
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs("/hosts/" + itoa(h.ID))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 77, Col: 43}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/hosts.templ`, Line: 73, Col: 43}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {

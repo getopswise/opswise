@@ -17,20 +17,6 @@ func nullStr(ns sql.NullString) string {
 	return ""
 }
 
-func maskPassword(ns sql.NullString) string {
-	if ns.Valid && ns.String != "" {
-		return "••••••••"
-	}
-	return "(not set)"
-}
-
-func passwordPlaceholder(ns sql.NullString) string {
-	if ns.Valid && ns.String != "" {
-		return "••••••••"
-	}
-	return "(optional)"
-}
-
 func keyPlaceholder(ns sql.NullString) string {
 	if ns.Valid && ns.String != "" {
 		return "Key stored (paste new key to replace)"

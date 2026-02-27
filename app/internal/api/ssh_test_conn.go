@@ -13,22 +13,15 @@ import (
 )
 
 // TestSSHConnection tries to establish an SSH connection to the host.
-// decryptedKey and decryptedPassword are already-decrypted credentials from the DB.
-// Fallback chain: per-host key data -> per-host password -> global key path -> default keys (~/.ssh/id_rsa, etc.)
-func TestSSHConnection(host dbq.Host, globalSSHKey string, decryptedKey []byte, decryptedPassword string) templates.SSHTestResult {
+// decryptedKey is the already-decrypted private key from the DB.
+// Fallback chain: per-host key data -> global key path -> default keys (~/.ssh/id_rsa, etc.)
+func TestSSHConnection(host dbq.Host, globalSSHKey string, decryptedKey []byte) templates.SSHTestResult {
 	addr := fmt.Sprintf("%s:%d", host.Ip, host.SshPort)
 	timeout := 10 * time.Second
 
 	// Try per-host key data (decrypted from DB)
 	if len(decryptedKey) > 0 {
 		if result, ok := tryKeyDataAuth(host.SshUser, addr, decryptedKey, timeout); ok {
-			return result
-		}
-	}
-
-	// Try per-host password (decrypted from DB)
-	if decryptedPassword != "" {
-		if result, ok := tryPasswordAuth(host.SshUser, addr, decryptedPassword, timeout); ok {
 			return result
 		}
 	}
@@ -95,17 +88,6 @@ func tryKeyAuth(user, addr, keyPath string, timeout time.Duration) (templates.SS
 	}
 
 	return dialSSH(addr, config, "key:"+keyPath)
-}
-
-func tryPasswordAuth(user, addr, password string, timeout time.Duration) (templates.SSHTestResult, bool) {
-	config := &ssh.ClientConfig{
-		User:            user,
-		Auth:            []ssh.AuthMethod{ssh.Password(password)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         timeout,
-	}
-
-	return dialSSH(addr, config, "password")
 }
 
 func dialSSH(addr string, config *ssh.ClientConfig, method string) (templates.SSHTestResult, bool) {

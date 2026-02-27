@@ -32,7 +32,6 @@ type Host struct {
 	SshKey         sql.NullString
 	Tags           sql.NullString
 	CreatedAt      sql.NullTime
-	SshPassword    sql.NullString
 	KeyFingerprint sql.NullString
 	KeyRotatedAt   sql.NullTime
 }

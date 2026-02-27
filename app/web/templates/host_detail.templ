@@ -28,20 +28,16 @@ templ HostDetailPage(host dbq.Host, deployments []dbq.Deployment) {
 						<input type="number" id="ssh_port" name="ssh_port" value={ itoa(host.SshPort) }/>
 					</div>
 					<div class="form-group">
-						<label for="ssh_key">SSH Private Key</label>
-						<textarea id="ssh_key" name="ssh_key" rows="4" placeholder={ keyPlaceholder(host.KeyFingerprint) } style="font-family: monospace; font-size: 0.85rem;"></textarea>
-						if host.KeyFingerprint.Valid && host.KeyFingerprint.String != "" {
-							<small class="text-mono">Fingerprint: { host.KeyFingerprint.String }</small>
-						}
-					</div>
-					<div class="form-group">
-						<label for="ssh_password">SSH Password</label>
-						<input type="password" id="ssh_password" name="ssh_password" placeholder={ passwordPlaceholder(host.SshPassword) }/>
-					</div>
-					<div class="form-group">
 						<label for="tags">Tags</label>
 						<input type="text" id="tags" name="tags" value={ nullStr(host.Tags) }/>
 					</div>
+				</div>
+				<div class="form-group" style="max-width: 480px;">
+					<label for="ssh_key">SSH Private Key</label>
+					<textarea id="ssh_key" name="ssh_key" rows="6" placeholder={ keyPlaceholder(host.KeyFingerprint) } style="font-family: monospace; font-size: 0.85rem;"></textarea>
+					if host.KeyFingerprint.Valid && host.KeyFingerprint.String != "" {
+						<small class="text-mono">Fingerprint: { host.KeyFingerprint.String }</small>
+					}
 				</div>
 				<div class="form-actions">
 					<button type="submit" class="btn-primary">Save</button>
@@ -57,19 +53,7 @@ templ HostDetailPage(host dbq.Host, deployments []dbq.Deployment) {
 				hx-swap="innerHTML"
 				hx-indicator="#test-spinner"
 			>Test Connection</button>
-			if host.SshKey.Valid && host.SshKey.String != "" && host.SshPassword.Valid && host.SshPassword.String != "" {
-				<button
-					class="btn-primary"
-					style="margin-left: 0.5rem;"
-					hx-post={ "/hosts/" + itoa(host.ID) + "/install-key" }
-					hx-target="#install-key-result"
-					hx-swap="innerHTML"
-					hx-indicator="#install-key-spinner"
-				>Install Public Key</button>
-				<span id="install-key-spinner" class="htmx-indicator">Installing...</span>
-			}
 			<div id="test-result" class="mt-1"></div>
-			<div id="install-key-result" class="mt-1"></div>
 			<span id="test-spinner" class="htmx-indicator">Testing...</span>
 		</div>
 		<h2>Deployments on this Host</h2>
