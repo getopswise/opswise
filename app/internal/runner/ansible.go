@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os/exec"
@@ -23,8 +24,9 @@ func RunPlaybook(playbook string, inventory []string, extraVars map[string]strin
 		"-i", strings.Join(inventory, ",") + ",",
 		"--no-color",
 	}
-	for k, v := range extraVars {
-		args = append(args, "--extra-vars", fmt.Sprintf("%s=%s", k, v))
+	if len(extraVars) > 0 {
+		varsJSON, _ := json.Marshal(extraVars)
+		args = append(args, "--extra-vars", string(varsJSON))
 	}
 
 	cmd := exec.Command("ansible-playbook", args...)

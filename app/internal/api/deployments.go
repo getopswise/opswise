@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -110,4 +111,55 @@ func (h *DeploymentHandler) LogStream(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+func (h *DeploymentHandler) Redeploy(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	dep, err := h.q.GetDeployment(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Deployment not found", http.StatusNotFound)
+		return
+	}
+
+	var hostIDs []int64
+	json.Unmarshal([]byte(dep.HostIds), &hostIDs)
+
+	var config map[string]string
+	if dep.Config.Valid {
+		json.Unmarshal([]byte(dep.Config.String), &config)
+	}
+
+	var hosts []dbq.Host
+	for _, hid := range hostIDs {
+		host, err := h.q.GetHost(r.Context(), hid)
+		if err == nil {
+			hosts = append(hosts, host)
+		}
+	}
+
+	newID, err := h.deploy.StartDeployment(r.Context(), runner.DeployParams{
+		Name:       dep.Name,
+		Type:       dep.Type,
+		TargetName: dep.TargetName,
+		Mode:       dep.Mode,
+		HostIDs:    hostIDs,
+		Config:     config,
+		Hosts:      hosts,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", fmt.Sprintf("/deployments/%d", newID))
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/deployments/%d", newID), http.StatusSeeOther)
 }

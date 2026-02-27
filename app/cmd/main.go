@@ -119,6 +119,7 @@ func main() {
 	r.Get("/deployments", deploymentHandler.List)
 	r.Get("/deployments/{id}", deploymentHandler.Detail)
 	r.Get("/deployments/{id}/log", deploymentHandler.LogStream)
+	r.Post("/deployments/{id}/redeploy", deploymentHandler.Redeploy)
 
 	// Settings
 	r.Get("/settings", settingsHandler.Page)
