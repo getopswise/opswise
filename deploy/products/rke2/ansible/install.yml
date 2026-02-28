@@ -51,6 +51,11 @@
         path: /etc/rancher/rke2/rke2.yaml
         timeout: 120
 
+    - name: Make kubeconfig readable
+      file:
+        path: /etc/rancher/rke2/rke2.yaml
+        mode: "0644"
+
     - name: Symlink kubectl to /usr/local/bin
       file:
         src: /var/lib/rancher/rke2/bin/kubectl
@@ -127,10 +132,15 @@
         path: /etc/rancher/rke2/rke2.yaml
         timeout: 120
 
+    - name: Make kubeconfig readable
+      file:
+        path: /etc/rancher/rke2/rke2.yaml
+        mode: "0644"
+
     - name: Wait for node to be Ready
       shell: |
         export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
-        /var/lib/rancher/rke2/bin/kubectl wait --for=condition=Ready node {{ inventory_hostname }} --timeout=120s
+        /var/lib/rancher/rke2/bin/kubectl wait --for=condition=Ready node {{ ansible_hostname }} --timeout=120s
       retries: 3
       delay: 10
       register: node_ready
