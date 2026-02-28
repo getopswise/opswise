@@ -297,6 +297,12 @@ func (h *DeploymentHandler) Download(w http.ResponseWriter, r *http.Request) {
 	}
 	defer session.Close()
 
+	modes := ssh.TerminalModes{}
+	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+		http.Error(w, "Failed to request PTY: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	var buf bytes.Buffer
 	session.Stdout = &buf
 	if err := session.Run("sudo cat " + dep.DownloadFile.String); err != nil {
