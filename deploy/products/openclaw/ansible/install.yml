@@ -61,7 +61,7 @@
           User=openclaw
           Group=openclaw
           Environment=PORT={{ openclaw_port }}
-          ExecStart=/usr/bin/openclaw gateway --allow-unconfigured
+          ExecStart=/usr/bin/openclaw gateway --allow-unconfigured --host 0.0.0.0
           Restart=on-failure
           RestartSec=10
           StandardOutput=journal
