@@ -42,10 +42,37 @@
         global: true
         state: present
 
-    - name: Run openclaw onboard to set up systemd service
-      command: openclaw onboard --install-daemon
-      args:
-        creates: /etc/systemd/system/openclaw.service
+    - name: Create openclaw system user
+      user:
+        name: openclaw
+        system: true
+        shell: /usr/sbin/nologin
+        create_home: true
+        home: /home/openclaw
+
+    - name: Create systemd service for OpenClaw
+      copy:
+        dest: /etc/systemd/system/openclaw.service
+        content: |
+          [Unit]
+          Description=OpenClaw Personal AI Assistant
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=openclaw
+          Group=openclaw
+          Environment=PORT={{ openclaw_port }}
+          ExecStart=/usr/bin/openclaw gateway
+          Restart=on-failure
+          RestartSec=10
+          StandardOutput=journal
+          StandardError=journal
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+      notify: Restart openclaw
 
     - name: Enable and start OpenClaw service
       systemd:
@@ -61,3 +88,9 @@
         delay: 5
         timeout: 60
         state: started
+
+  handlers:
+    - name: Restart openclaw
+      systemd:
+        name: openclaw
+        state: restarted
