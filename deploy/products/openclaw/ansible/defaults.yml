@@ -3,3 +3,4 @@
 openclaw_version: latest
 openclaw_port: 18789
 openclaw_node_version: 22
+_gui_url: "http://{host}:{openclaw_port}/__openclaw__/canvas/"
