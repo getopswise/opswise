@@ -24,3 +24,9 @@
         name: openclaw
         global: true
         state: absent
+
+    - name: Remove openclaw user
+      user:
+        name: openclaw
+        state: absent
+        remove: true
