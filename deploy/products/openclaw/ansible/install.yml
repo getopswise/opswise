@@ -36,11 +36,9 @@
         update_cache: true
 
     - name: Install OpenClaw via npm
-      npm:
-        name: openclaw
-        version: "{{ openclaw_version }}"
-        global: true
-        state: present
+      command: npm install -g openclaw@{{ openclaw_version }}
+      register: npm_install
+      changed_when: "'added' in npm_install.stdout"
 
     - name: Create openclaw system user
       user:
