@@ -1,0 +1,5 @@
+# OpenClaw default variables
+# These values are surfaced as form fields in the Opswise GUI.
+openclaw_version: latest
+openclaw_port: 18789
+openclaw_node_version: 22

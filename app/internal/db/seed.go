@@ -88,6 +88,14 @@ func seedProducts(ctx context.Context, q *dbq.Queries) {
 			Modes:       `["ansible"]`,
 		},
 		{
+			Name:        "openclaw",
+			DisplayName: "OpenClaw",
+			Description: ns("Open source personal AI assistant — autonomous agent with local file and messaging integration"),
+			Version:     ns("1.0.0"),
+			Icon:        ns("bot"),
+			Modes:       `["ansible"]`,
+		},
+		{
 			Name:        "argocd",
 			DisplayName: "ArgoCD",
 			Description: ns("Declarative GitOps continuous delivery tool for Kubernetes"),

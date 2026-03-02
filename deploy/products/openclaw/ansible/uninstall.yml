@@ -1,0 +1,26 @@
+---
+- name: Uninstall OpenClaw
+  hosts: all
+  become: true
+  tasks:
+    - name: Stop and disable OpenClaw service
+      systemd:
+        name: openclaw
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove systemd service file
+      file:
+        path: /etc/systemd/system/openclaw.service
+        state: absent
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: true
+
+    - name: Uninstall OpenClaw via npm
+      npm:
+        name: openclaw
+        global: true
+        state: absent
